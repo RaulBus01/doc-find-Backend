@@ -1,0 +1,19 @@
+# Logs
+*.log
+
+# Environment files (adjust if you want to track a sample version)
+.env
+
+# Coverage output
+coverage/
+
+# Build output
+dist/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Optional: Uncomment if using node_modules (e.g., for tooling) 
+# node_modules/
+doc-find-Backend/.env
