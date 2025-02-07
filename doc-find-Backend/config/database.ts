@@ -1,5 +1,5 @@
 import {load} from "@std/dotenv"
-
+import "jsr:@std/dotenv/load";
 await load({export:true})
 
 export const dbConfig = {

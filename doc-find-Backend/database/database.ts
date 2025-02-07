@@ -1,12 +1,11 @@
-import { Pool } from "https://deno.land/x/postgres@v0.17.0/mod.ts";
-
-import { dbConfig } from "../config/database.ts";
-
-const pool = new Pool(dbConfig,10);
-
-export const getDbClient = async () =>
-{
-    return await pool.connect();
-}
+import { drizzle } from "drizzle-orm/neon-http";
+import { neon } from '@neondatabase/serverless';
+import "jsr:@std/dotenv/load";
 
 
+const DB_URL = Deno.env.get("DB_URL")!;
+const sql = neon(DB_URL);
+
+const db = drizzle({client:sql});
+
+export { db };
