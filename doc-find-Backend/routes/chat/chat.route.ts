@@ -65,15 +65,19 @@ export const getChat  = createRoute({
 
     responses:{
         [HttpStatusCodes.OK]: jsonContent(
-            selectChatSchema.array(),
-            "List of user chats"
+            selectChatSchema,
+            "Single chat details"
+        ),
+        [HttpStatusCodes.NOT_FOUND]: jsonContent(
+            z.object({ message: z.string() }),
+            "Chat not found"
         ),
         [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(
             createErrorSchema(selectChatSchema),
             "The validation error(s)",
-          ),
-        },
-    }
+        ),
+    }}
+    
 );
 
 
@@ -86,19 +90,20 @@ export const deleteChat  = createRoute({
     },
 
     responses:{
-        [HttpStatusCodes.NO_CONTENT]: {
-            description: "Chat with the id " + IdParamsSchema + "was deleted",
-          },
-          [HttpStatusCodes.NOT_FOUND]: jsonContent(
-            notFoundSchema,
-            "Task not found",
-          ),
-          [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(
-            createErrorSchema(IdParamsSchema),
+        [HttpStatusCodes.OK]: jsonContent(
+            z.object({ message: z.string() }),
+            "Chat deleted successfully"
+        ),
+        [HttpStatusCodes.NOT_FOUND]: jsonContent(
+            z.object({ message: z.string() }),
+            "Chat not found"
+        ),
+        [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(
+            createErrorSchema(z.object({ id: z.number() })),
             "Invalid id error",
-          ),
-        },
+        ),
     }
+}
 );
 
 
