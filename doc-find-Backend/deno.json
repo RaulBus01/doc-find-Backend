@@ -5,7 +5,8 @@
     "debug": "deno run -A --inspect-brk app.ts"
   },
   "imports": {
-    "@hono/hono": "jsr:@hono/hono@^4.6.20",
+    "@hig/jwt": "jsr:@hig/jwt@^0.1.1",
+    "@hono/hono": "jsr:@hono/hono@^4.7.0",
     "@hono/swagger-ui": "npm:@hono/swagger-ui@^0.5.0",
     "@hono/zod-openapi": "npm:@hono/zod-openapi@^0.18.3",
     "@huggingface/transformers": "npm:@huggingface/transformers@^3.3.2",
@@ -17,6 +18,7 @@
     "drizzle-kit": "npm:drizzle-kit@^0.30.3",
     "drizzle-orm": "npm:drizzle-orm@^0.39.2",
     "drizzle-zod": "npm:drizzle-zod@^0.7.0",
+    "hono-openapi": "npm:hono-openapi@^0.4.4",
     "pg": "npm:pg@^8.13.1",
     "stoker": "npm:stoker@^1.4.2"
   }

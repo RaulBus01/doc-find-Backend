@@ -1,117 +1,212 @@
-import { createRoute } from "@hono/zod-openapi";
-import * as HttpStatusCodes from "stoker/http-status-codes";
-import { insertChatSchema, selectChatSchema } from "../../drizzle/schema.ts";
-import { jsonContent, jsonContentRequired } from "stoker/openapi/helpers";
-import createErrorSchema from "stoker/openapi/schemas/create-error-schema";
+import { Hono } from "@hono/hono";
+import { verifyUserPermissions } from "../../middlewares/Auth.middleware.ts";
+import { describeRoute } from 'hono-openapi';
+import { attachUser } from "../../middlewares/User.middleware.ts";
+import { selectChatSchema, selectMessageSchema } from "../../drizzle/schema.ts";
 import { z } from "@hono/zod-openapi";
+import { createChat, getChat, getChatMessages,deleteChat, addChatMessage, getChats } from "./chat.handler.ts";
 
 
-const tags = ["Chat"];
-
-export const create = createRoute({
-    path: "/chat",
-    method: "post",
-    tags,
+const app = new Hono();
+app.post(
+  '/',
+  describeRoute({
+    tags: ['Chat'],
+    description: 'Create chat',
     request: {
-        body: jsonContentRequired(
-            insertChatSchema,
-            "Chat to create"
-        )
+      body: z.object({
+        message: z.string(),
+      })
     },
     responses: {
-        [HttpStatusCodes.OK]: jsonContent(
-            selectChatSchema,
-            "Chat created"
-        ),
-        [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(
-            createErrorSchema(insertChatSchema),
-            "The validation error(s)",
-        ),
+      200: {
+        description: 'Chat created',
+        content: {
+          "text/plain": {
+            schema: selectChatSchema,
+          }
+        },
+      },
+      404: {
+        description: 'Chat not created',
+        content: {
+          "text/plain": {
+            schema: z.object({ message: z.string() }),
+          }
+        },
+      },
     },
-}
-);
+  }),
+  verifyUserPermissions,
+  attachUser,
+  createChat
+)
+.get(
+    '/getChats/',
+    describeRoute({
+      tags: ['Chat'],
+      description: 'Get all chats',
+      responses: {
+        200: {
+          description: 'List of user chats',
+          content: {
+            "text/plain": {
+              schema: selectChatSchema.array(),
 
-export const getChats = createRoute({
-    path: "/chat/getChats/{userId}",
-    method: "get",
-    tags,
-    request: {
-        params: z.object({
-            userId: z.string().transform((val: string) => parseInt(val))
+            }
+          },
+        },
+        404: {
+          description: 'Chat not found',
+          content: {
+            "text/plain": {
+              schema: z.object({ message: z.string() }),
+            }
+          },
+        },
+      },
+    }),
+    verifyUserPermissions,
+    attachUser,
+    getChats
+  )
+  .get(
+    '/:id',
+    describeRoute({
+      tags: ['Chat'],
+      description: 'Get chat by id',
+      request:{
+        params:z.object({
+          id:z.string()
         })
-    },
-
-    responses: {
-        [HttpStatusCodes.OK]: jsonContent(
-            selectChatSchema.array(),
-            "List of user chats"
-        ),
-        [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(
-            createErrorSchema(selectChatSchema),
-            "The validation error(s)",
-        ),
-    },
-}
-);
-
-export const getChat = createRoute({
-    path: "/chat/getChat/{id}",
-    method: "get",
-    tags,
-    request: {
-        params: z.object({
-            id: z.string().transform((val: string) => parseInt(val))
+      },
+      responses: {
+        200: {
+          description: 'Chat',
+          content: {
+            "text/plain": {
+              schema: z.object({ message: z.string() }),
+            }
+          },
+        },
+        404: {
+          description: 'Chat not found',
+          content: {
+            "text/plain": {
+              schema: z.object({ message: z.string() }),
+            }
+          },
+        },
+      },
+    }),
+    verifyUserPermissions,
+    attachUser,
+    getChat 
+  )
+  .delete(
+    '/:id',
+    describeRoute({
+      tags: ['Chat'],
+      description: 'Delete chat by id',
+      request:{
+        params:z.object({
+          id:z.string()
         })
-    },
-
-    responses: {
-        [HttpStatusCodes.OK]: jsonContent(
-            selectChatSchema,
-            "Single chat details"
-        ),
-        [HttpStatusCodes.NOT_FOUND]: jsonContent(
-            z.object({ message: z.string() }),
-            "Chat not found"
-        ),
-        [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(
-            createErrorSchema(selectChatSchema),
-            "The validation error(s)",
-        ),
-    }
-}
-);
-
-
-export const deleteChat = createRoute({
-    path: "/chat/deleteChat/{id}",
-    method: "delete",
-    tags,
-    request: {
-        params: z.object({
-            id: z.string().transform((val: string) => parseInt(val))
+      },
+      responses: {
+        200: {
+          description: 'Chat deleted',
+          content: {
+            "text/plain": {
+              schema: z.object({ message: z.string() }),
+            }
+          },
+        },
+        404: {
+          description: 'Chat not found',
+          content: {
+            "text/plain": {
+              schema: z.object({ message: z.string() }),
+            }
+          },
+        },
+      },
+    }),
+    verifyUserPermissions,
+    attachUser,
+    deleteChat
+  )
+  .post(
+    '/:id/addMessage',
+    describeRoute({
+      tags: ['Chat'],
+      description: 'Add message to chat',
+      request:{
+        params:z.object({
+          id:z.string()
+        }),
+        body:z.object({
+          message:z.string()
         })
-    },
+      },
+      responses: {
+        200: {
+          description: 'Message added',
+          content: {
+            "text/plain": {
+              schema: z.object({ message: z.string() }),
+            }
+          },
+        },
+        404: {
+          description: 'Chat not found',
+          content: {
+            "text/plain": {
+              schema: z.object({ message: z.string() }),
+            }
+          },
+        },
+      },
+    }),
+    verifyUserPermissions,
+    attachUser,
+    addChatMessage
+  )
+  .get(
+    '/:id/messages',
+    describeRoute({
+      tags: ['Chat'],
+      description: 'Get chat messages',
+      request:{
+        params:z.object({
+          id:z.string()
+        })
+      },
+      responses: {
+        200: {
+          description: 'List of chat messages',
+          content: {
+            "text/plain": {
+              schema: selectMessageSchema.array(),
+            }
+          },
+        },
+        404: {
+          description: 'Chat not found',
+          content: {
+            "text/plain": {
+              schema: z.object({ message: z.string() }),
+            }
+          },
+        },
+      },
+    }),
+    verifyUserPermissions,
+    attachUser,
+    getChatMessages
+  )
 
-    responses: {
-        [HttpStatusCodes.OK]: jsonContent(
-            z.object({ message: z.string() }),
-            "Chat deleted successfully"
-        ),
-        [HttpStatusCodes.NOT_FOUND]: jsonContent(
-            z.object({ message: z.string() }),
-            "Chat not found"
-        ),
-        [HttpStatusCodes.UNPROCESSABLE_ENTITY]: jsonContent(
-            createErrorSchema(z.object({ id: z.number() })),
-            "Invalid id error",
-        ),
-    }
-}
-);
+ 
 
 
-export type CreateChat = typeof create;
-export type GetChats = typeof getChats;
-export type GetChat = typeof getChat;
-export type DeleteChat = typeof deleteChat;
-
+export default app;

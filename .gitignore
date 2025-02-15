@@ -16,5 +16,7 @@ Thumbs.db
 
 # Optional: Uncomment if using node_modules (e.g., for tooling) 
 node_modules/
-
+.deno/
 doc-find-Backend/.env
+.vscode/launch.json
+.vscode/settings.json
