@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { desc, eq } from "drizzle-orm";
 import { db } from "../../database/database.ts";
 import { chats, insertChatSchema, messages } from "../../drizzle/schema.ts";
 import { z } from "@hono/zod-openapi";
@@ -15,7 +15,7 @@ export class ChatService {
 
   // Get all chats for a given userId
   async getChats(userId: number) {
-    const chatsData =  await db.select().from(chats).where(eq(chats.userId, userId));
+    const chatsData =  await db.select().from(chats).where(eq(chats.userId, userId)).orderBy(desc(chats.updatedAt));
     if(chatsData.length === 0) {
         throw new ChatNotFoundException("Chats not found for user id " + userId);
     }
@@ -34,18 +34,25 @@ export class ChatService {
   }
   async addMessage(id: number,  userId: number,message: string,) {
 
+   const chatTransaction = await db.transaction(async(db) => {
     const [chat] = await db.select().from(chats).where(eq(chats.id, id));
-    if(chat === undefined) {
-        throw new ChatNotFoundException("Chat with id " + id + " not found");
+    if (!chat) {
+      throw new ChatNotFoundException("Chat with id " + id + " not found");
     }
-
-
     if(chat.userId !== userId) {
         throw new Error("User not authorized to add message to this chat");
+
     }
 
-        
-    return await db.insert(messages).values({chatId: id, content: message, userId: chat.userId}).returning();
+    const [newMessage] = await db.insert(messages).values({chatId: id, content: message, userId: userId}).returning();
+    
+    const [updatedChat] = await db.update(chats).set({updatedAt: new Date().toISOString()}).where(eq(chats.id, id)).returning();
+    if(!newMessage || !updatedChat) {
+      throw new Error("Message not added to chat");
+    }
+    return newMessage;
+  });
+  return chatTransaction;
     
   }
   async createChatWithMessage(chat: z.infer<typeof insertChatSchema>, message: string) {
