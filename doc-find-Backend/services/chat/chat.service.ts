@@ -14,12 +14,23 @@ export class ChatService {
 
 
   // Get all chats for a given userId
-  async getChats(userId: number) {
-    const chatsData =  await db.select().from(chats).where(eq(chats.userId, userId)).orderBy(desc(chats.updatedAt));
-    if(chatsData.length === 0) {
-        throw new ChatNotFoundException("Chats not found for user id " + userId);
-    }
-    return chatsData;
+  async getChats(userId: number,limit?:string) {
+    const query = db.select()
+    .from(chats)
+    .where(eq(chats.userId, userId))
+    .orderBy(desc(chats.updatedAt));
+
+  if (limit) {
+    query.limit(parseInt(limit));
+  }
+
+  const chatsData = await query;
+  
+  if (chatsData.length === 0) {
+    throw new ChatNotFoundException("Chats not found for user id " + userId);
+  }
+  
+  return chatsData;
   }
   // Get a chat by id
   async getChat(id: number, userId: number) {
@@ -32,7 +43,7 @@ export class ChatService {
     }
     return chat[0];
   }
-  async addMessage(id: number,  userId: number,message: string,) {
+  async addMessage(id: number,  userId: number,message: string,isAI: boolean) {
 
    const chatTransaction = await db.transaction(async(db) => {
     const [chat] = await db.select().from(chats).where(eq(chats.id, id));
@@ -44,7 +55,7 @@ export class ChatService {
 
     }
 
-    const [newMessage] = await db.insert(messages).values({chatId: id, content: message, userId: userId}).returning();
+    const [newMessage] = await db.insert(messages).values({chatId: id, content: message, userId: userId,isAI:isAI}).returning();
     
     const [updatedChat] = await db.update(chats).set({updatedAt: new Date().toISOString()}).where(eq(chats.id, id)).returning();
     if(!newMessage || !updatedChat) {

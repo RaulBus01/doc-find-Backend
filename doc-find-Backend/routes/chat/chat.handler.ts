@@ -6,7 +6,8 @@ import { ChatNotFoundException } from "../../services/exceptions/ChatNotFoundExc
 export const getChats = async (c:Context) => {
       try{
       const user = c.get("user");
-      const chats = await chatService.getChats(user.id);
+      const limit = c.req.query('limit')
+      const chats = await chatService.getChats(user.id,limit);
       return c.json(chats, 200);
       }
       catch (error) {
@@ -67,8 +68,8 @@ export const addChatMessage = async (c:Context) => {
     try {
         const { id } = c.req.param();
         const user = c.get("user");
-        const { message } = await c.req.json();
-        const messageData = await chatService.addMessage(id, user.id, message);
+        const { message,isAI } = await c.req.json();
+        const messageData = await chatService.addMessage(id, user.id, message,isAI);
         return c.json(messageData, 200);
     } catch (error) {
         if (error instanceof ChatNotFoundException) {

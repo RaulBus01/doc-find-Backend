@@ -5,6 +5,7 @@ import { attachUser } from "../../middlewares/User.middleware.ts";
 import { selectChatSchema, selectMessageSchema } from "../../drizzle/schema.ts";
 import { z } from "@hono/zod-openapi";
 import { createChat, getChat, getChatMessages,deleteChat, addChatMessage, getChats } from "./chat.handler.ts";
+import { is } from "drizzle-orm/entity";
 
 
 const app = new Hono();
@@ -46,6 +47,17 @@ app.post(
     describeRoute({
       tags: ['Chat'],
       description: 'Get all chats',
+      request:{
+        query:z.object({
+          limit:z.string()
+          .optional()
+          .transform(val=>val ? parseInt(val) : undefined)
+          .refine(val => !val || (val > 0 && val <= 28), {
+            message: 'Limit must be between 1 and 50'
+          }),
+        
+        })
+      },
       responses: {
         200: {
           description: 'List of user chats',
@@ -143,7 +155,8 @@ app.post(
       description: 'Add message to chat',
       request:{
         params:z.object({
-          id:z.string()
+          id:z.string(),
+          isAI:z.boolean()
         }),
         body:z.object({
           message:z.string()

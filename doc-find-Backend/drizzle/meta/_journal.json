@@ -8,6 +8,13 @@
       "when": 1738859748192,
       "tag": "0000_brief_wolf_cub",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1739778119463,
+      "tag": "0001_hard_magus",
+      "breakpoints": true
     }
   ]
 }

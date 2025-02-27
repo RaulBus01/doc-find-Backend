@@ -35,6 +35,7 @@ export const messages = pgTable("messages", {
     .notNull()
     .references(() => users.id),
   content: text("content").notNull(),
+  isAI: boolean("is_ai").notNull().default(false),
   createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
 });
