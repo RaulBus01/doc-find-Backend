@@ -5,6 +5,7 @@
     "debug": "deno run -A --inspect-brk app.ts"
   },
   "imports": {
+    "@google/generative-ai": "npm:@google/generative-ai@^0.24.0",
     "@hig/jwt": "jsr:@hig/jwt@^0.1.1",
     "@hono/hono": "jsr:@hono/hono@^4.7.0",
     "@hono/swagger-ui": "npm:@hono/swagger-ui@^0.5.0",

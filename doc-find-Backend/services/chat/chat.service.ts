@@ -3,6 +3,7 @@ import { db } from "../../database/database.ts";
 import { chats, insertChatSchema, messages } from "../../drizzle/schema.ts";
 import { z } from "@hono/zod-openapi";
 import { ChatNotFoundException } from "../exceptions/ChatNotFoundException.ts";
+import { generateTitleWithGemini } from "../LLM.ts";
 
 export class ChatService {
   // Create a new chat in the database
@@ -86,7 +87,56 @@ export class ChatService {
     //Return the chat transaction
     return chatTransaction;
   }
-
+  // Update a chat title by id
+  async updateChatTitle(id: number, userId: number, title: string) {
+    const chat = await db.select().from(chats).where(eq(chats.id, id));
+    if(chat.length === 0) {
+        throw new ChatNotFoundException("Chat with id " + id + " not found");
+    }
+    if(chat[0].userId !== userId) {
+        throw new Error("User not authorized to update this chat");
+    }
+    
+    const [updatedChat] = await db.update(chats)
+      .set({ title, updatedAt: new Date().toISOString() })
+      .where(eq(chats.id, id))
+      .returning();
+      
+    if(!updatedChat) {
+      throw new Error("Chat title not updated");
+    }
+    
+    return updatedChat;
+  }
+  async generateAndUpdateTitle(chatId: number, userId: number) {
+    // Get the first few messages to generate a meaningful title
+    const chatMessages = await this.getChatMessages(chatId, userId);
+    if (chatMessages.length === 0) {
+      throw new Error("No messages found to generate title");
+    }
+    
+    // Extract the conversation for context (limit to first few messages)
+    const conversationLimit = Math.min(chatMessages.length, 3);
+    const conversation = chatMessages
+      .slice(0, conversationLimit)
+      .map(msg => msg.content)
+      .join("\n");
+      
+    // Generate title prompt
+    const titlePrompt = `Based on this conversation, generate a concise, descriptive title (max 5 words):\n${conversation}`;
+    
+    try {
+      // Import the Gemini title generator
+      
+      const title = await generateTitleWithGemini(titlePrompt);
+      
+      // Update the chat with the new title
+      return await this.updateChatTitle(chatId, userId, title);
+    } catch (error) {
+      console.error("Failed to generate title:", error);
+      throw error;
+    }
+  }
 
   // Get all messages for a given chat id
   async getChatMessages(id: number, userId: number) {

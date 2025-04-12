@@ -8,6 +8,7 @@
     "jsr:@std/dotenv@~0.225.3": "0.225.3",
     "jsr:@std/encoding@1.0": "1.0.7",
     "jsr:@std/internal@^1.0.5": "1.0.5",
+    "npm:@google/generative-ai@0.24": "0.24.0",
     "npm:@hono/swagger-ui@0.5": "0.5.0_hono@4.7.0",
     "npm:@hono/zod-openapi@~0.18.3": "0.18.4_hono@4.7.0_zod@3.24.1",
     "npm:@huggingface/inference@*": "3.2.0",
@@ -228,6 +229,9 @@
     },
     "@esbuild/win32-x64@0.19.12": {
       "integrity": "sha512-T1QyPSDCyMXaO3pzBkF96E8xMkiRYbUEZADd29SyPGabqxMViNoii+NcK7eWJAEoU6RZyEm5lVSIjTmcdoB9HA=="
+    },
+    "@google/generative-ai@0.24.0": {
+      "integrity": "sha512-fnEITCGEB7NdX0BhoYZ/cq/7WPZ1QS5IzJJfC3Tg/OwkvBetMiVJciyaan297OvE4B9Jg1xvo0zIazX/9sGu1Q=="
     },
     "@hono/swagger-ui@0.5.0_hono@4.7.0": {
       "integrity": "sha512-MWYYSv9kC8IwFBLZdwgZZMT9zUq2C/4/ekuyEYOkHEgUMqu+FG3eebtBZ4ofMh60xYRxRR2BgQGoNIILys/PFg==",
@@ -1464,6 +1468,7 @@
       "jsr:@hono/hono@^4.7.0",
       "jsr:@std/assert@1",
       "jsr:@std/dotenv@~0.225.3",
+      "npm:@google/generative-ai@0.24",
       "npm:@hono/swagger-ui@0.5",
       "npm:@hono/zod-openapi@~0.18.3",
       "npm:@huggingface/transformers@^3.3.2",

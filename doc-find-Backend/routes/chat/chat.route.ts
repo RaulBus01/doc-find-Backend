@@ -4,9 +4,7 @@ import { describeRoute } from 'hono-openapi';
 import { attachUser } from "../../middlewares/User.middleware.ts";
 import { selectChatSchema, selectMessageSchema } from "../../drizzle/schema.ts";
 import { z } from "@hono/zod-openapi";
-import { createChat, getChat, getChatMessages,deleteChat, addChatMessage, getChats } from "./chat.handler.ts";
-import { is } from "drizzle-orm/entity";
-
+import { createChat, getChat, getChatMessages,deleteChat, addChatMessage, getChats, generateChatTitle } from "./chat.handler.ts";
 
 const app = new Hono();
 app.post(
@@ -217,6 +215,39 @@ app.post(
     verifyUserPermissions,
     attachUser,
     getChatMessages
+  )
+  .post(
+    '/:id/generateChatTitle',
+    describeRoute({
+      tags: ['Chat'],
+      description: 'Generate a title for the chat',
+      request:{
+        params:z.object({
+          id:z.string()
+        })
+      },
+      responses: {
+        200: {
+          description: 'Title generated successfully',
+          content: {
+            "text/plain": {
+              schema: selectChatSchema,
+            }
+          },
+        },
+        404: {
+          description: 'Chat not found',
+          content: {
+            "text/plain": {
+              schema: z.object({ message: z.string() }),
+            }
+          },
+        },
+      },
+    }),
+    verifyUserPermissions,
+    attachUser,
+    generateChatTitle
   )
 
  

@@ -1,16 +1,26 @@
 import { HfInference } from "npm:@huggingface/inference";
 import "jsr:@std/dotenv/load";
 import {Mistral} from "@mistralai/mistralai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai"; 
+
 const InferenceSession = new HfInference(Deno.env.get("HF_API_KEY"));
-
 const model="mistralai/Mistral-Nemo-Instruct-2407";
-
 const client = new Mistral({
   apiKey: Deno.env.get("MISTRAL_API_KEY"),
 });
 
+const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
+if (!GOOGLE_API_KEY) {
+  throw new Error("Missing GOOGLE_API_KEY in environment variables.");
+}
+const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY)
+const geminiModel = genAI.getGenerativeModel({
+  model:"gemini-2.0-flash-lite",
+})
+
 const context = `You are an AI medical assistant. Your task is to analyze the given text and provide a possible diagnosis based on the symptoms and information provided.
 Consider the entities marked in the text (if any) and their relevance to potential medical conditions.`;
+
 
 
 const getAPIResponse = async (message: string,streamHandler?: (chunk: string) => Promise<void>) => {
@@ -59,7 +69,7 @@ const getAIresponse = async (messages: any, streamHandler?: (chunk: string) => P
       ],
     })) {
       const content = chunk.choices[0]?.delta?.content || "";
-      Deno.stdout.write(new TextEncoder().encode(content));
+      // Deno.stdout.write(new TextEncoder().encode(content));
       if (streamHandler) {
         await streamHandler(content);
       }
@@ -70,4 +80,19 @@ const getAIresponse = async (messages: any, streamHandler?: (chunk: string) => P
   }
 };
 
-export { getAIresponse , getAPIResponse };
+const generateTitleWithGemini = async (message: string) => {
+  if(!GOOGLE_API_KEY) {
+    throw new Error("Missing GOOGLE_API_KEY in environment variables.");
+  }
+  try{
+    const result = await geminiModel.generateContent(message);
+    const response = result.response;
+    const title = response.text().trim();
+    return title;
+  } catch (error) {
+    console.error("Error in Gemini processing:", error);
+    throw error;
+  }
+}
+
+export { getAIresponse , getAPIResponse, generateTitleWithGemini };
