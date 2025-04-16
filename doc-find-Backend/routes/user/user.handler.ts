@@ -1,4 +1,4 @@
-import { Context } from "@hono/hono";
+import { Context } from "npm:hono";
 import { userService } from "../../services/user/user.service.ts";
 
 interface UserInfoAuth0 {

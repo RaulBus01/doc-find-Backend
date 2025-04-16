@@ -1,4 +1,4 @@
-import { Hono } from "@hono/hono";
+import { Hono } from "npm:hono";
 
 import { describeRoute } from "hono-openapi";
 import { z } from "@hono/zod-openapi";

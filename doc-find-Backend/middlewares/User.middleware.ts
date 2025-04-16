@@ -1,8 +1,7 @@
 import * as HttpStatusCodes from "stoker/http-status-codes";
 import { userService } from "../services/user/user.service.ts";
-import type { Context } from "@hono/hono";
-import { createMiddleware } from '@hono/hono/factory';
-
+import { Context} from "npm:hono";
+import { createMiddleware } from 'npm:hono/factory';
 export const attachUser = createMiddleware(async (c: Context, next: () => Promise<void>) => {
   const tokenPayload = c.get("tokenPayload");
   if (!tokenPayload || !tokenPayload.sub) {

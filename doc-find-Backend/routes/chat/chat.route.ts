@@ -1,4 +1,4 @@
-import { Hono } from "@hono/hono";
+import { Hono } from "npm:hono";
 import { verifyUserPermissions } from "../../middlewares/Auth.middleware.ts";
 import { describeRoute } from 'hono-openapi';
 import { attachUser } from "../../middlewares/User.middleware.ts";

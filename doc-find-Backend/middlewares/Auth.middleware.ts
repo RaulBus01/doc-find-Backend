@@ -1,5 +1,5 @@
-import { Context} from "@hono/hono";
-import { createMiddleware } from '@hono/hono/factory';
+import { Context} from "npm:hono";
+import { createMiddleware } from 'npm:hono/factory';
 import { jwtVerify, importJWK } from "https://deno.land/x/jose@v5.9.6/index.ts";
 import * as HttpStatusCodes from "stoker/http-status-codes";
 

@@ -1,6 +1,6 @@
-import { Context } from "@hono/hono";
+import { Context } from "npm:hono";
 import { getAIresponse } from "../../services/LLM.ts";
-import { streamText } from '@hono/hono/streaming';
+import { streamText } from 'npm:hono/streaming';
 
 export const getModelResponse = async (c:Context) => {
     const message = await c.req.text();

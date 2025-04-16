@@ -1,4 +1,4 @@
-import { Context } from "@hono/hono";
+import { Context } from "npm:hono";
 import { chatService } from "../../services/chat/chat.service.ts";
 import { ChatNotFoundException } from "../../services/exceptions/ChatNotFoundException.ts";
 

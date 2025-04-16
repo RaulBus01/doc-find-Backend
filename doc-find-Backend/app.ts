@@ -1,11 +1,11 @@
-import { Hono } from "@hono/hono";
+import { Hono } from "npm:hono"
 import chat from "./routes/chat/chat.route.ts";
 import user from "./routes/user/user.route.ts";
 import models from "./routes/models/models.route.ts";
 import { openAPISpecs } from 'hono-openapi'
-import { apiReference } from '@scalar/hono-api-reference'
+import { Scalar } from 'npm:scalar/hono-api-reference'
 import serveEmojiFavicon from "stoker/middlewares/serve-emoji-favicon";
-import { cors } from '@hono/hono/cors'
+import { cors } from 'npm:hono/cors'
 
 const app = new Hono();
 app.use(serveEmojiFavicon("🦕"));
@@ -27,7 +27,7 @@ app.get(
 )
 app.get(
   '/docs',
-  apiReference({
+  Scalar({
     theme: "kepler",
     layout: "classic",
     defaultHttpClient: {

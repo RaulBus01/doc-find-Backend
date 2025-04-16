@@ -1,9 +1,8 @@
-import { createRoute } from "@hono/zod-openapi";
 import { insertUserSchema, selectUserSchema } from "../../drizzle/schema.ts";
 import createErrorSchema from "stoker/openapi/schemas/create-error-schema";
 import { verifyUserPermissions } from "../../middlewares/Auth.middleware.ts";
 
-import { Hono } from "@hono/hono";
+import { Hono } from "npm:hono";
 import { describeRoute } from 'hono-openapi';
 import { createUser } from "./user.handler.ts";
 const app = new Hono();
