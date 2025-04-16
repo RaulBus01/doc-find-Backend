@@ -30,7 +30,7 @@ jobs:
         uses: denoland/deployctl@v1
         with:
           project: "docfind-backend"
-          entrypoint: "./doc-find-Backend/index.ts"
+          entrypoint: "/doc-find-Backend/index.ts"
           root: "."
           
           
