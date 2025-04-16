@@ -123,8 +123,8 @@ export class ChatService {
       .join("\n");
       
     // Generate title prompt
-    const titlePrompt = `Based on this conversation, generate a concise, descriptive title (max 5 words):\n${conversation}`;
-    
+    const titlePrompt = `Create a concise, descriptive title (maximum 5 words) for this conversation. If the conversation lacks a clear specific topic, generate the default title "General Discussion".
+    Conversation:${conversation}`;
     try {
       // Import the Gemini title generator
       
