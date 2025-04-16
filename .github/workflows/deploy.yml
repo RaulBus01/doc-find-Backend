@@ -31,6 +31,6 @@ jobs:
         with:
           project: "docfind-backend"
           entrypoint: "index.ts"
-          root: "."
+          root: "./doc-find-Backend"
           
           
