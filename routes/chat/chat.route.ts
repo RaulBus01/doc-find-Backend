@@ -49,8 +49,8 @@ app.post(
         query:z.object({
           limit:z.string()
           .optional()
-          .transform(val=>val ? parseInt(val) : undefined)
-          .refine(val => !val || (val > 0 && val <= 28), {
+          .transform((val)=>val ? parseInt(val) : undefined)
+          .refine((val) => !val || (val > 0 && val <= 28), {
             message: 'Limit must be between 1 and 50'
           }),
         
