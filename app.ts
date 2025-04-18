@@ -8,8 +8,7 @@ import serveEmojiFavicon from "stoker/middlewares/serve-emoji-favicon";
 import { cors } from 'npm:hono/cors'
 
 const app = new Hono();
-app.use(serveEmojiFavicon("🦕"));
-app.use(cors());
+// app.use(cors());
 app.get(
   '/openapi',
   openAPISpecs(app, {

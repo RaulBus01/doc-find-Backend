@@ -23,7 +23,8 @@
     "hono": "npm:hono@^4.7.7",
     "hono-openapi": "npm:hono-openapi@^0.4.4",
     "pg": "npm:pg@^8.13.1",
-    "stoker": "npm:stoker@^1.4.2"
+    "stoker": "npm:stoker@^1.4.2",
+    "zod": "npm:zod@^3.24.3"
   },
   "deploy": {
     "project": "ae0de193-784a-4644-91fd-52bf1beafa3b",

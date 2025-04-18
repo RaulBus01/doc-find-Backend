@@ -50,7 +50,7 @@ app.post(
           limit:z.string()
           .optional()
           .transform((val)=>val ? parseInt(val) : undefined)
-          .refine((val) => !val || (val > 0 && val <= 28), {
+          .refine((val) => !val || (val > 0 && val <= 50), {
             message: 'Limit must be between 1 and 50'
           }),
         
@@ -80,6 +80,7 @@ app.post(
     attachUser,
     getChats
   )
+  
   .get(
     '/:id',
     describeRoute({
