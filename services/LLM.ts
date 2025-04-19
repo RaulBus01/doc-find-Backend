@@ -41,7 +41,7 @@ const buildSystemMessage = (context: string, contextData?: ContextUser) => {
 }
 
 
-const getAPIResponse = async (message: string,contextData?:ContextUser,streamHandler?: (chunk: string) => Promise<void>) => {
+const getAPIResponse = async (message: string,contextData?:ContextUser,streamHandler?: (chunk: string) => void) => {
   try {
     const response = await client.chat.stream({
       temperature:0.7,
@@ -61,7 +61,7 @@ const getAPIResponse = async (message: string,contextData?:ContextUser,streamHan
         if (typeof streamText === 'string') {
           if(streamHandler)
           {
-          await streamHandler(streamText);
+          streamHandler(streamText);
           }
         } else {
           console.warn('Received non-string content:', streamText);

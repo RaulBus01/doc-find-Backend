@@ -4,7 +4,6 @@ import user from "./routes/user/user.route.ts";
 import models from "./routes/models/models.route.ts";
 import { openAPISpecs } from 'hono-openapi'
 import { Scalar } from 'npm:@scalar/hono-api-reference'
-import serveEmojiFavicon from "stoker/middlewares/serve-emoji-favicon";
 import { cors } from 'npm:hono/cors'
 
 const app = new Hono();
