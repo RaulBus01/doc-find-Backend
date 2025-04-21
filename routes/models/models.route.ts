@@ -125,10 +125,7 @@ app.post(
   
   (c) => {
     const { message, chatId, context,userId } = c.req.valid('json');
-    console.log("User ID:", userId); // Log the user ID
-    console.log("Chat ID:", chatId); // Log the chat ID
-    console.log("Message:", message); // Log the message
-    console.log("Context:", context); // Log the context
+
     const stream = new ReadableStream({
       async start(controller) {
         // Accumulate the full response

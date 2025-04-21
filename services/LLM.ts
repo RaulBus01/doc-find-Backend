@@ -36,7 +36,6 @@ const buildSystemMessage = (context: string, contextData?: ContextUser) => {
   const contextString = Object.entries(contextData)
     .map(([key, value]) => `${key}: ${value}`)
     .join(", ");
-  console.log("Context String:", contextString); // Log the context
   return `${context} with the following context about patient: ${contextString}`;
 }
 

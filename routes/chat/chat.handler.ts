@@ -21,8 +21,6 @@ export const getChat = async (c:Context) => {
     try {
         const { id } = c.req.param();
         const user = c.get("user");
-        console.log("User ID:", user.id); // Log the user ID
-        console.log("Chat ID:", id); // Log the chat ID
         const chat = await chatService.getChat(parseInt(id), user.id);
         return c.json(chat, 200);
     } catch (error) {
