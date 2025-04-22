@@ -3,7 +3,7 @@ import { db } from "../../database/database.ts";
 import { chats, insertChatSchema, messages } from "../../drizzle/schema.ts";
 import { z } from "@hono/zod-openapi";
 import { ChatNotFoundException } from "../exceptions/ChatNotFoundException.ts";
-import { generateTitleWithGemini } from "../LLM.ts";
+import { generateTitleWithGemini } from "../ai-service.ts";
 
 export class ChatService {
   // Create a new chat in the database
@@ -75,12 +75,12 @@ export class ChatService {
       if (!newChat) {
         throw new Error("Chat not created");
       }
-      //Desctructure the message returned from the insert
-      const [createdMessage] = await db.insert(messages).values({chatId: newChat.id, content: message, userId: newChat.userId}).returning();
-      //Check if the message was created
-      if(!createdMessage) {
-        throw new Error("Message not created");
-      }
+      // //Desctructure the message returned from the insert
+      // const [createdMessage] = await db.insert(messages).values({chatId: newChat.id, content: message, userId: newChat.userId}).returning();
+      // //Check if the message was created
+      // if(!createdMessage) {
+      //   throw new Error("Message not created");
+      // }
       
       return newChat;
     });

@@ -21,7 +21,7 @@ app.post(
       200: {
         description: 'Chat created',
         content: {
-          "text/plain": {
+          "application/json": {
             schema: selectChatSchema,
           }
         },
@@ -29,7 +29,7 @@ app.post(
       404: {
         description: 'Chat not created',
         content: {
-          "text/plain": {
+          "application/json": {
             schema: z.object({ message: z.string() }),
           }
         },
