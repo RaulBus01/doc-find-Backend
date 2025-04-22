@@ -45,7 +45,7 @@ app.post(
   attachUser,
   validateStreamAndSaveRequest,
   (c) => {
-    const { message, chatId, context,userId } = c.req.valid('json');
+    const { message, chatId, context,userId,modelType } = c.req.valid('json');
 
     const stream = new ReadableStream({
       async start(controller) {
@@ -53,7 +53,7 @@ app.post(
         
         try {
           // Stream AI response to client while accumulating it
-          await getAPIResponse(chatId,message, context, async (chunk: string) => {
+          await getAPIResponse(chatId,message,modelType,context, async (chunk: string) => {
 
             if (chunk) {
               // Send chunk to client
