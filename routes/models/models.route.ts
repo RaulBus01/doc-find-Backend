@@ -1,7 +1,6 @@
 import { Hono } from "npm:hono";
 import { describeRoute } from "hono-openapi";
 import { z } from "@hono/zod-openapi";
-
 import { getAPIResponse} from "../../services/ai-service.ts";
 import { verifyUserPermissions } from "../../middlewares/Auth.middleware.ts";
 import { attachUser } from "../../middlewares/User.middleware.ts";

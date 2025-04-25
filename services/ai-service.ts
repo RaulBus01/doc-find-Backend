@@ -2,7 +2,7 @@ import "jsr:@std/dotenv/load";
 
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory} from "@google/generative-ai";
 import { ContextUser } from "../types/ContextType.ts";
-import { Pool } from '@neondatabase/serverless';
+import pg from "npm:pg";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import {
   ChatPromptTemplate,
@@ -15,27 +15,33 @@ import { ChatMistralAI } from "@langchain/mistralai";
 import { AIModel } from "../types/types.ts";
 
 import { Logger } from "../utils/logger.ts";
-
+import { DuckDuckGoSearch } from "@langchain/community/tools/duckduckgo_search";
 const logger = new Logger("AIService");
+
+const searchTool = new DuckDuckGoSearch();
+
 
 
 
 const modelMap = (model: AIModel) => {
+  let chatModel;
   switch (model) {
     case AIModel.MISTRAL_SMALL:
-      return new ChatMistralAI({
+      chatModel = new ChatMistralAI({
         model: AIModel.MISTRAL_SMALL,
         temperature: 0.7,
         safePrompt: true,
         streaming: true,
       });
+      break;
     case AIModel.MISTRAL_LARGE:
-      return new ChatMistralAI({
+      chatModel =  new ChatMistralAI({
         model: AIModel.MISTRAL_LARGE,
         temperature: 0.7,
         safePrompt: true,
         streaming: true,
       });
+      break;
     // case AIModel.GEMINI_FLASH_LITE:
     //   return new ChatGoogleGenerativeAI({
     //     apiKey: Deno.env.get("GOOGLE_API_KEY"),
@@ -56,19 +62,24 @@ const modelMap = (model: AIModel) => {
    
     default:
       logger.warn("Model not found, using default Mistral Small model.");
-      return new ChatMistralAI({
+      chatModel = new ChatMistralAI({
         model: AIModel.MISTRAL_SMALL,
         temperature: 0.7,
         safePrompt: true,
         streaming: true,
       });
+      break;
       
+  }
+  if ( chatModel instanceof ChatMistralAI){
+    return chatModel.bindTools([searchTool]);
   }
 }
 
 
 const baseContext = `You are an AI medical assistant. Your task is to analyze the given text and provide a possible diagnosis based on the symptoms and information provided.
-Consider the entities marked in the text (if any) and their relevance to potential medical conditions.`;
+Consider the entities marked in the text (if any) and their relevance to potential medical conditions.
+You have access to a search tool to look up current information or details you don't know. Use it when necessary to provide the most accurate and up-to-date response.`;
 
 const buildSystemMessage = (contextData?: ContextUser | string) => {
   if (!contextData) {
@@ -89,7 +100,7 @@ const poolConfig = {
   ssl: true
 };
 
-const pool = new Pool(poolConfig);
+const pool = new pg.Pool(poolConfig);
 
 const modelPrompt = ChatPromptTemplate.fromMessages([
   ["system", "{context_string}"],
@@ -103,20 +114,27 @@ const modelPrompt = ChatPromptTemplate.fromMessages([
 const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,contextData?: ContextUser, streamHandler?: (chunk: string) => void) => {
   try {
     const model = modelMap(modelType);
+ 
+    //@ts-ignore "@langchain/mistralai" does not have a type definition
     const chain = modelPrompt.pipe(model).pipe(new StringOutputParser());
     const chainWithHistory = new RunnableWithMessageHistory({
       runnable: chain,
       inputMessagesKey: "question",
       historyMessagesKey: "chat_history",
+  
       getMessageHistory: (sessionId: string) => {
         const chatHistory = new PostgresChatMessageHistory({
           sessionId,
           pool,
-          tableName: "messagesTest",
+          tableName: "messages_history",
+          
+          
         });
         return chatHistory;
       },
     });
+
+    
     
 
 
@@ -129,6 +147,8 @@ const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,
       {
         configurable: {
           sessionId: chatId.toString(),
+          
+          
         },
       }
     );
@@ -144,8 +164,10 @@ const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,
       } else {
         logger.warn("Unexpected chunk type:", typeof chunk);
       }
+
     }
 
+    
 
 
   } catch (error) {

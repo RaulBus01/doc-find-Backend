@@ -6,7 +6,7 @@
     "npm:@hono/swagger-ui@0.5": "0.5.1_hono@4.7.7",
     "npm:@hono/zod-openapi@~0.19.5": "0.19.5_hono@4.7.7_zod@3.24.3",
     "npm:@huggingface/transformers@^3.3.2": "3.5.0",
-    "npm:@langchain/community@~0.3.41": "0.3.41_@browserbasehq+stagehand@1.14.0__@playwright+test@1.52.0__deepmerge@4.3.1__dotenv@16.5.0__openai@4.95.1___zod@3.24.3___ws@8.18.1__zod@3.24.3__ws@8.18.1_@huggingface+transformers@3.5.0_@ibm-cloud+watsonx-ai@1.6.4__@langchain+core@0.3.46___openai@4.95.1____zod@3.24.3____ws@8.18.1___zod@3.24.3__openai@4.95.1___zod@3.24.3___ws@8.18.1_@langchain+core@0.3.46__zod@3.24.3_@neondatabase+serverless@0.10.4_ibm-cloud-sdk-core@5.3.2__axios@1.8.4_openai@4.95.1__zod@3.24.3__ws@8.18.1_pg@8.15.0_zod@3.24.3_@langchain+google-genai@0.2.4__@langchain+core@0.3.46___zod@3.24.3_@langchain+mistralai@0.2.0__@langchain+core@0.3.46___zod@3.24.3__zod@3.24.3",
+    "npm:@langchain/community@~0.3.41": "0.3.41_@browserbasehq+stagehand@1.14.0__@playwright+test@1.52.0__deepmerge@4.3.1__dotenv@16.5.0__openai@4.95.1___zod@3.24.3___ws@8.18.1__zod@3.24.3__ws@8.18.1_@huggingface+transformers@3.5.0_@ibm-cloud+watsonx-ai@1.6.4__@langchain+core@0.3.46___openai@4.95.1____zod@3.24.3____ws@8.18.1___zod@3.24.3__openai@4.95.1___zod@3.24.3___ws@8.18.1_@langchain+core@0.3.46__zod@3.24.3_@neondatabase+serverless@0.10.4_duck-duck-scrape@2.2.7_ibm-cloud-sdk-core@5.3.2__axios@1.8.4_openai@4.95.1__zod@3.24.3__ws@8.18.1_pg@8.15.0_zod@3.24.3_@langchain+google-genai@0.2.4__@langchain+core@0.3.46___zod@3.24.3_@langchain+mistralai@0.2.0__@langchain+core@0.3.46___zod@3.24.3__zod@3.24.3",
     "npm:@langchain/core@~0.3.45": "0.3.46_zod@3.24.3",
     "npm:@langchain/google-genai@~0.2.4": "0.2.4_@langchain+core@0.3.46__zod@3.24.3",
     "npm:@langchain/langgraph@~0.2.65": "0.2.65_@langchain+core@0.3.46__zod@3.24.3",
@@ -19,10 +19,12 @@
     "npm:drizzle-kit@~0.30.3": "0.30.6_esbuild@0.19.12",
     "npm:drizzle-orm@0.42": "0.42.0_@neondatabase+serverless@0.10.4_@types+pg@8.11.13_pg@8.15.0",
     "npm:drizzle-zod@~0.7.1": "0.7.1_drizzle-orm@0.42.0__@neondatabase+serverless@0.10.4__@types+pg@8.11.13__pg@8.15.0_zod@3.24.3_@neondatabase+serverless@0.10.4_@types+pg@8.11.13_pg@8.15.0",
+    "npm:duck-duck-scrape@^2.2.7": "2.2.7",
     "npm:hono-openapi@~0.4.6": "0.4.6_hono@4.7.7",
     "npm:hono@*": "4.7.7",
     "npm:hono@^4.7.7": "4.7.7",
     "npm:langchain@~0.3.23": "0.3.23_@langchain+core@0.3.46__zod@3.24.3_@langchain+google-genai@0.2.4__@langchain+core@0.3.46___zod@3.24.3_@langchain+mistralai@0.2.0__@langchain+core@0.3.46___zod@3.24.3__zod@3.24.3_zod@3.24.3",
+    "npm:pg@*": "8.15.0",
     "npm:pg@^8.15.0": "8.15.0",
     "npm:stoker@^1.4.2": "1.4.2_@asteasolutions+zod-to-openapi@7.3.0__zod@3.24.3_@hono+zod-openapi@0.19.5__hono@4.7.7__zod@3.24.3_hono@4.7.7_openapi3-ts@4.4.0"
   },
@@ -388,7 +390,7 @@
     "@jsdevtools/ono@7.1.3": {
       "integrity": "sha512-4JQNk+3mVzK3xh2rqd6RB4J46qUR19azEHBneZyTZM+c456qOrbbM/5xcR8huNCCcbVt7+UmizG6GuUvPvKUYg=="
     },
-    "@langchain/community@0.3.41_@browserbasehq+stagehand@1.14.0__@playwright+test@1.52.0__deepmerge@4.3.1__dotenv@16.5.0__openai@4.95.1___zod@3.24.3___ws@8.18.1__zod@3.24.3__ws@8.18.1_@huggingface+transformers@3.5.0_@ibm-cloud+watsonx-ai@1.6.4__@langchain+core@0.3.46___openai@4.95.1____zod@3.24.3____ws@8.18.1___zod@3.24.3__openai@4.95.1___zod@3.24.3___ws@8.18.1_@langchain+core@0.3.46__zod@3.24.3_@neondatabase+serverless@0.10.4_ibm-cloud-sdk-core@5.3.2__axios@1.8.4_openai@4.95.1__zod@3.24.3__ws@8.18.1_pg@8.15.0_zod@3.24.3_@langchain+google-genai@0.2.4__@langchain+core@0.3.46___zod@3.24.3_@langchain+mistralai@0.2.0__@langchain+core@0.3.46___zod@3.24.3__zod@3.24.3": {
+    "@langchain/community@0.3.41_@browserbasehq+stagehand@1.14.0__@playwright+test@1.52.0__deepmerge@4.3.1__dotenv@16.5.0__openai@4.95.1___zod@3.24.3___ws@8.18.1__zod@3.24.3__ws@8.18.1_@huggingface+transformers@3.5.0_@ibm-cloud+watsonx-ai@1.6.4__@langchain+core@0.3.46___openai@4.95.1____zod@3.24.3____ws@8.18.1___zod@3.24.3__openai@4.95.1___zod@3.24.3___ws@8.18.1_@langchain+core@0.3.46__zod@3.24.3_@neondatabase+serverless@0.10.4_duck-duck-scrape@2.2.7_ibm-cloud-sdk-core@5.3.2__axios@1.8.4_openai@4.95.1__zod@3.24.3__ws@8.18.1_pg@8.15.0_zod@3.24.3_@langchain+google-genai@0.2.4__@langchain+core@0.3.46___zod@3.24.3_@langchain+mistralai@0.2.0__@langchain+core@0.3.46___zod@3.24.3__zod@3.24.3": {
       "integrity": "sha512-i/DQ4bkKW+0W+zFy8ZrH7gRiag3KZuZU15pFXYom7wdZ8zcHJZZh2wi43hiBEWt8asx8Osyx4EhYO5SNp9ewkg==",
       "dependencies": [
         "@browserbasehq/stagehand",
@@ -398,6 +400,7 @@
         "@langchain/openai@0.5.6_@langchain+core@0.3.46__openai@4.95.1___zod@3.24.3___ws@8.18.1__zod@3.24.3_zod@3.24.3_openai@4.95.1__ws@8.18.1__zod@3.24.3",
         "@neondatabase/serverless",
         "binary-extensions",
+        "duck-duck-scrape",
         "expr-eval",
         "flat",
         "ibm-cloud-sdk-core",
@@ -894,6 +897,13 @@
         "zod"
       ]
     },
+    "duck-duck-scrape@2.2.7": {
+      "integrity": "sha512-BEcglwnfx5puJl90KQfX+Q2q5vCguqyMpZcSRPBWk8OY55qWwV93+E+7DbIkrGDW4qkqPfUvtOUdi0lXz6lEMQ==",
+      "dependencies": [
+        "html-entities",
+        "needle"
+      ]
+    },
     "ecdsa-sig-formatter@1.0.11": {
       "integrity": "sha512-nagl3RYrbNv6kQkeJIpt6NJZy8twLB/2vtz6yN9Z4vRKHN4/QZJIEbqohALSgwKdnksuY3k5Addp5lg8sVoVcQ==",
       "dependencies": [
@@ -1093,6 +1103,9 @@
     "hookable@5.5.3": {
       "integrity": "sha512-Yc+BQe8SvoXH1643Qez1zqLRmbA5rCL+sSmk6TVos0LWVfNIB7PGncdlId77WzLGSIB5KaWgTaNTs2lNVEI6VQ=="
     },
+    "html-entities@2.6.0": {
+      "integrity": "sha512-kig+rMn/QOVRvr7c86gQ8lWXq+Hkv6CbAH1hLu+RG338StTpE8Z0b44SDVaqVu7HGKf27frdmUYEs9hTUX/cLQ=="
+    },
     "humanize-ms@1.2.1": {
       "integrity": "sha512-Fl70vYtsAFb/C06PTS9dZBo7ihau+Tu/DNCk/OyHhea07S+aeMWpFFkUaXRa8fI+ScZbEI8dfSxwY7gxZ9SAVQ==",
       "dependencies": [
@@ -1117,6 +1130,12 @@
         "mime-types",
         "retry-axios",
         "tough-cookie"
+      ]
+    },
+    "iconv-lite@0.6.3": {
+      "integrity": "sha512-4fCk79wshMdzMp2rH06qWrJE4iolqLhCUH+OiuIgU++RB0+94NlDL81atO7GX55uUKueo0txHNtvEyI6D7WdMw==",
+      "dependencies": [
+        "safer-buffer"
       ]
     },
     "ieee754@1.2.1": {
@@ -1311,6 +1330,13 @@
     },
     "nanoid@5.1.5": {
       "integrity": "sha512-Ir/+ZpE9fDsNH0hQ3C68uyThDXzYcim2EqcZ8zn8Chtt1iylPT9xXJB0kPCnqzgcEGikO9RxSrh63MsmVCU7Fw=="
+    },
+    "needle@3.3.1": {
+      "integrity": "sha512-6k0YULvhpw+RoLNiQCRKOl09Rv1dPLr8hHnVjHqdolKwDrdNyk+Hmrthi4lIGPPz3r39dLx0hsF5s40sZ3Us4Q==",
+      "dependencies": [
+        "iconv-lite",
+        "sax"
+      ]
     },
     "node-domexception@1.0.0": {
       "integrity": "sha512-/jKZoMpw0F8GRwl4/eLROPA3cfcXtLApP0QzLmUT/HuPCZWyB7IY9ZrMeKw2O/nFIqPQB3PVM9aYm0F312AXDQ=="
@@ -1600,6 +1626,12 @@
     },
     "safe-buffer@5.2.1": {
       "integrity": "sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ=="
+    },
+    "safer-buffer@2.1.2": {
+      "integrity": "sha512-YZo3K82SD7Riyi0E1EQPojLz7kpepnSQI9IyPbHHg1XXXevb5dJI7tpyN2ADxGcQbHG7vcyRHk0cbwqcQriUtg=="
+    },
+    "sax@1.4.1": {
+      "integrity": "sha512-+aWOz7yVScEGoKNd4PA10LZ8sk0A/z5+nXQG5giUO5rprX9jgYsTdov9qCchZiPIZezbZH+jRut8nPodFAX4Jg=="
     },
     "semver-compare@1.0.0": {
       "integrity": "sha512-YM3/ITh2MJ5MtzaM429anh+x2jiLVjqILF4m4oyQB18W7Ggea7BfqdH/wGMK7dDiMghv/6WG7znWMwUDzJiXow=="
@@ -1908,6 +1940,7 @@
       "npm:drizzle-kit@~0.30.3",
       "npm:drizzle-orm@0.42",
       "npm:drizzle-zod@~0.7.1",
+      "npm:duck-duck-scrape@^2.2.7",
       "npm:hono-openapi@~0.4.6",
       "npm:hono@^4.7.7",
       "npm:langchain@~0.3.23",

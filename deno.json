@@ -25,6 +25,7 @@
     "drizzle-kit": "npm:drizzle-kit@^0.30.3",
     "drizzle-orm": "npm:drizzle-orm@^0.42.0",
     "drizzle-zod": "npm:drizzle-zod@^0.7.1",
+    "duck-duck-scrape": "npm:duck-duck-scrape@^2.2.7",
     "hono": "npm:hono@^4.7.7",
     "hono-openapi": "npm:hono-openapi@^0.4.6",
     "langchain": "npm:langchain@^0.3.23",

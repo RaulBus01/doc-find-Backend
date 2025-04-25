@@ -1,7 +1,7 @@
 // schema.ts
 
 // deno --env -A --node-modules-dir npm:drizzle-kit push   
-import { pgTable, serial, text, timestamp, varchar, integer,boolean } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, varchar, integer,boolean, jsonb, uniqueIndex, index } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod"
 
 export const users = pgTable("users", {
@@ -26,20 +26,24 @@ export const chats = pgTable("chats", {
   updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
 });
 
-export const messages = pgTable("messages", {
+export const messagesHistory = pgTable("messages_history", {
   id: serial("id").primaryKey(),
-  chatId: integer("chat_id")
-    .notNull()
-    .references(() => chats.id),
-  userId: integer("user_id")
-    .notNull()
-    .references(() => users.id),
-  content: text("content").notNull(),
-  isAI: boolean("is_ai").notNull().default(false),
+  sessionId: varchar("session_id", { length: 255 }).notNull(),
+  message: jsonb("message").notNull(),
   createdAt: timestamp("created_at", { mode: "string" }).defaultNow(),
   updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
 });
 
+
+export const selectMessagesHistorySchema = createSelectSchema(messagesHistory);
+export const insertMessagesHistorySchema = createInsertSchema(messagesHistory).required({
+  sessionId: true,
+  message: true,
+}).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
 
 export const selectChatSchema= createSelectSchema(chats);
 export const insertChatSchema= createInsertSchema(chats).required({
@@ -83,6 +87,6 @@ export const selectUserSchema= createSelectSchema(users).required({
   updatedAt: true,
 });
 
-export const selectMessageSchema= createSelectSchema(messages);
+
 
 

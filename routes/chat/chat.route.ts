@@ -2,9 +2,9 @@ import { Hono } from "npm:hono";
 import { verifyUserPermissions } from "../../middlewares/Auth.middleware.ts";
 import { describeRoute } from 'hono-openapi';
 import { attachUser } from "../../middlewares/User.middleware.ts";
-import { selectChatSchema, selectMessageSchema } from "../../drizzle/schema.ts";
+import { selectChatSchema, selectMessagesHistorySchema } from "../../drizzle/schema.ts";
 import { z } from "@hono/zod-openapi";
-import { createChat, getChat, getChatMessages,deleteChat, addChatMessage, getChats, generateChatTitle } from "./chat.handler.ts";
+import { createChat, getChat, getChatMessages,deleteChat, getChats, generateChatTitle, getChatLastMessages } from "./chat.handler.ts";
 
 const app = new Hono();
 app.post(
@@ -182,7 +182,7 @@ app.post(
     }),
     verifyUserPermissions,
     attachUser,
-    addChatMessage
+  
   )
   .get(
     '/:id/messages',
@@ -199,7 +199,7 @@ app.post(
           description: 'List of chat messages',
           content: {
             "text/plain": {
-              schema: selectMessageSchema.array(),
+              schema: selectMessagesHistorySchema.array(),
             }
           },
         },
@@ -217,6 +217,40 @@ app.post(
     attachUser,
     getChatMessages
   )
+  .get(
+    '/:id/lastMessages/:limit',
+    describeRoute({
+      tags: ['Chat'],
+      description: 'Get last messages of chat',
+      request:{
+        params:z.object({
+          id:z.string(),
+          limit:z.string()
+        })
+      },
+      responses: {
+        200: {
+          description: 'List of chat messages',
+          content: {
+            "text/plain": {
+              schema: selectMessagesHistorySchema.array(),
+            }
+          },
+        },
+        404: {
+          description: 'Chat not found',
+          content: {
+            "text/plain": {
+              schema: z.object({ message: z.string() }),
+            }
+          },
+        },
+      },
+    }),
+    verifyUserPermissions,
+    attachUser,
+    getChatLastMessages
+    )
   .post(
     '/:id/generateChatTitle',
     describeRoute({
