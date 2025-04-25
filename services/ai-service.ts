@@ -19,7 +19,9 @@ import { DuckDuckGoSearch } from "@langchain/community/tools/duckduckgo_search";
 const logger = new Logger("AIService");
 
 const searchTool = new DuckDuckGoSearch();
-
+import { createToolCallingAgent } from "langchain/agents";
+import { AgentExecutor } from "langchain/agents";
+import { LanguageModelLike } from "@langchain/core";
 
 
 
@@ -71,16 +73,14 @@ const modelMap = (model: AIModel) => {
       break;
       
   }
-  if ( chatModel instanceof ChatMistralAI){
-    return chatModel.bindTools([searchTool]);
-  }
+  return chatModel;
 }
 
 
 const baseContext = `You are an AI medical assistant. Your task is to analyze the given text and provide a possible diagnosis based on the symptoms and information provided.
-Consider the entities marked in the text (if any) and their relevance to potential medical conditions.
-You have access to a search tool to look up current information or details you don't know. Use it when necessary to provide the most accurate and up-to-date response.`;
-
+Consider the entities marked in the text (if any) and their relevance to potential medical conditions`;
+const agentContext = `You can also use the search tool to find relevant information and provide a more accurate diagnosis.`;
+// const baseContext = "You are an AI assistant";
 const buildSystemMessage = (contextData?: ContextUser | string) => {
   if (!contextData) {
     return baseContext;
@@ -88,7 +88,7 @@ const buildSystemMessage = (contextData?: ContextUser | string) => {
   const contextString = Object.entries(contextData)
     .map(([key, value]) => `${key}: ${value}`)
     .join(", ");
-  return `${baseContext} with the following context about patient: ${contextString}`;
+  return `${baseContext} with the following context about patient: ${contextString} + ${agentContext}`;
 }
 
 const poolConfig = {
@@ -105,21 +105,45 @@ const pool = new pg.Pool(poolConfig);
 const modelPrompt = ChatPromptTemplate.fromMessages([
   ["system", "{context_string}"],
   new MessagesPlaceholder("chat_history"),
-  ["human", "{question}"],
+  ["human", "{input}"],
+  new MessagesPlaceholder("agent_scratchpad"),
 ]);
+
+const tools =[searchTool];
 
 
 
 
 const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,contextData?: ContextUser, streamHandler?: (chunk: string) => void) => {
   try {
-    const model = modelMap(modelType);
- 
-    //@ts-ignore "@langchain/mistralai" does not have a type definition
-    const chain = modelPrompt.pipe(model).pipe(new StringOutputParser());
+
+    const model = modelMap(modelType) as LanguageModelLike;
+    const agent = createToolCallingAgent({
+      llm: model,
+      tools,
+      prompt: modelPrompt,
+      verbose: true,
+    });
+    const agentExecutor = new AgentExecutor({
+      agent,
+      tools,
+    });
+
+    // const response = await agentExecutor.invoke(
+    //   {
+    //     input: message,
+    //     context_string: buildSystemMessage(contextData),
+    //     chat_history: messageHistory,
+    //   },
+      
+    // );
+    // console.log("Response:", response);
+    
+    // //@ts-ignore "@langchain/mistralai" does not have a type definition
+    // const chain = modelPrompt.pipe(model).pipe(new StringOutputParser());
     const chainWithHistory = new RunnableWithMessageHistory({
-      runnable: chain,
-      inputMessagesKey: "question",
+      runnable: agentExecutor,
+      inputMessagesKey: "input",
       historyMessagesKey: "chat_history",
   
       getMessageHistory: (sessionId: string) => {
@@ -134,13 +158,14 @@ const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,
       },
     });
 
+
     
     
 
 
     const response = await chainWithHistory.stream(
       {
-        question: message,
+        input: message,
         context_string: buildSystemMessage(contextData),
 
       },
@@ -152,6 +177,7 @@ const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,
         },
       }
     );
+
 
 
     for await (const chunk of response) {

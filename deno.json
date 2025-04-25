@@ -16,6 +16,7 @@
     "@langchain/google-genai": "npm:@langchain/google-genai@^0.2.4",
     "@langchain/langgraph": "npm:@langchain/langgraph@^0.2.65",
     "@langchain/mistralai": "npm:@langchain/mistralai@^0.2.0",
+    "@langchain/tavily": "npm:@langchain/tavily@^0.1.1",
     "@mistralai/mistralai": "npm:@mistralai/mistralai@^1.6.0",
     "@neondatabase/serverless": "npm:@neondatabase/serverless@^0.10.4",
     "@scalar/hono-api-reference": "npm:@scalar/hono-api-reference@^0.8.1",
