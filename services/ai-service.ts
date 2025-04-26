@@ -129,16 +129,6 @@ const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,
       tools,
     });
 
-    // const response = await agentExecutor.invoke(
-    //   {
-    //     input: message,
-    //     context_string: buildSystemMessage(contextData),
-    //     chat_history: messageHistory,
-    //   },
-      
-    // );
-    // console.log("Response:", response);
-    
     // //@ts-ignore "@langchain/mistralai" does not have a type definition
     // const chain = modelPrompt.pipe(model).pipe(new StringOutputParser());
     const chainWithHistory = new RunnableWithMessageHistory({
@@ -181,17 +171,47 @@ const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,
 
 
     for await (const chunk of response) {
-      
       if (typeof chunk === 'string') {
         if (streamHandler) {
           streamHandler(chunk);
-
+        }
+      } else if (typeof chunk === 'object' && chunk !== null) {
+        // Handle object chunks from agent responses
+        if (chunk.output !== undefined) {
+          // AI response content
+          console.log(chunk.output);
+          if (streamHandler && typeof chunk.output === 'string') {
+            streamHandler(chunk.output);
+          }
+        } else if (chunk.tokens !== undefined) {
+          // Some LLMs return tokens
+          if (streamHandler && typeof chunk.tokens === 'string') {
+            streamHandler(chunk.tokens);
+          }
+        } else {
+          // Log object structure to understand what's available
+          logger.debug("Chunk structure:", JSON.stringify(chunk));
         }
       } else {
         logger.warn("Unexpected chunk type:", typeof chunk);
       }
-
     }
+
+    // const followUpPrompt = `Based on the conversation so far, suggest one relevant follow-up question the user might ask next.`;
+    // const followUpResponse = await chainWithHistory.invoke(
+    //   {
+    //     input: followUpPrompt,
+    //     context_string: buildSystemMessage(contextData),
+
+    //   },
+    //   {
+    //     configurable: {
+    //       sessionId: chatId.toString(),
+    //     },
+    //   }
+    // );
+
+    // console.log("Follow-up question:", followUpResponse.output);
 
     
 
