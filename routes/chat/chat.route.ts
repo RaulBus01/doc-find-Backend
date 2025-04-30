@@ -60,8 +60,7 @@ app.post(
       },
     }),
     zValidator('query', z.object({
-      page: z.number().optional(),
-      limit: z.number().optional(),
+      limit: z.string().optional(),
     })),
     verifyUserPermissions,
     attachUser,
