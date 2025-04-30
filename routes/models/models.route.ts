@@ -1,72 +1,87 @@
 import { Hono } from "npm:hono";
-
 import { describeRoute } from "hono-openapi";
-import { z } from "@hono/zod-openapi";
-import { getMistralResponse, getModelResponse } from "./models.handler.ts";
-
-
+import { z } from "npm:@hono/zod-openapi";
+import { getAPIResponse} from "../../services/ai-service.ts";
+import { verifyUserPermissions } from "../../middlewares/Auth.middleware.ts";
+import { attachUser } from "../../middlewares/User.middleware.ts";
+import { Logger } from "../../utils/logger.ts";
+import { validateStreamAndSaveRequest,StreamAndSaveSchema } from "../../middlewares/Model.middleware.ts";
+import { resolver, validator as zValidator } from "hono-openapi/zod";
+const logger = new Logger("ModelsRoute");
 const app = new Hono();
+
 app.post(
-    '/chat-test',
-    describeRoute({
-        tags: ['Models'],
-        description: 'Test Models',
-        request: {
-            body: z.object({
-                message: z.string(),
-            })
-        },
-        responses: {
-            200: {
-                description: 'Models tested',
-                content: {
-                    "text/plain": {
-                        schema: z.object({ message: z.string() }),
-                    }
-                },
-            },
-            404: {
-                description: 'Models not tested',
-                content: {
-                    "text/plain": {
-                        schema: z.object({ message: z.string() }),
-                    }
-                },
-            },
+  '/stream-and-save',
+  describeRoute({
+    tags: ['Models'],
+    description: 'Stream AI response and save to database',
+ 
+    responses: {
+      200: {
+        description: 'AI response streamed and saved',
+        content: {
+          "text/event-stream": {
+            schema: resolver(z.object({
+              message: z.string(),
+            })),
+          },
         }
-    }),
-    getModelResponse
-)
-.post(
-    '/mistral-test',
-    describeRoute({
-        tags: ['Models'],
-        description: 'Test Mistral',
-        request: {
-            body: z.object({
-                message: z.string(),
-            })
+      },
+    
+      500: {
+        description: 'Error processing request',
+        content: {
+          "application/json": {
+            schema: resolver(z.object({ error: z.string() })),
+          }
         },
-        responses: {
-            200: {
-                description: 'Mistral tested',
-                content: {
-                    "text/plain": {
-                        schema: z.object({ message: z.string() }),
-                    }
-                },
-            },
-            404: {
-                description: 'Mistral not tested',
-                content: {
-                    "text/plain": {
-                        schema: z.object({ message: z.string() }),
-                    }
-                },
-            },
+      },
+    }
+  }),
+  verifyUserPermissions,
+  attachUser,
+  validateStreamAndSaveRequest,
+  (c) => {
+    const { message, chatId, context,userId,modelType } = c.req.valid('json');
+
+    const stream = new ReadableStream({
+      async start(controller) {
+        let completeResponse = "";
+        
+        try {
+          // Stream AI response to client while accumulating it
+          await getAPIResponse(chatId,message,modelType,context, async (chunk: string) => {
+
+            if (chunk) {
+              // Send chunk to client
+              controller.enqueue(new TextEncoder().encode(chunk));
+              // Add to complete response
+              completeResponse += chunk;
+            }
+          });
+          
+        
+        } catch (error) {
+
+          const errorToLog = error instanceof Error ? error : new Error(String(error));
+          logger.error("Error in streaming AI response", errorToLog, { userId });
+          controller.enqueue(new TextEncoder().encode("Error: Failed to process AI response"));
+        } finally {
+          controller.close();
         }
-    }), getMistralResponse
-)
+      }
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/event-stream",
+        "Cache-Control": "no-cache",
+        "Connection": "keep-alive",
+      },
+    });
+  }
+);
 
 export default app;
+
 

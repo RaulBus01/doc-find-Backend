@@ -1,9 +1,9 @@
-import { desc, eq } from "drizzle-orm";
+import { asc, desc, eq } from "drizzle-orm";
 import { db } from "../../database/database.ts";
-import { chats, insertChatSchema, messages } from "../../drizzle/schema.ts";
-import { z } from "@hono/zod-openapi";
+import { chats, insertChatSchema, messagesHistory } from "../../drizzle/schema.ts";
+import { z } from "npm:@hono/zod-openapi";
 import { ChatNotFoundException } from "../exceptions/ChatNotFoundException.ts";
-import { generateTitleWithGemini } from "../LLM.ts";
+import { generateTitleWithGemini } from "../ai-service.ts";
 
 export class ChatService {
   // Create a new chat in the database
@@ -44,29 +44,7 @@ export class ChatService {
     }
     return chat[0];
   }
-  async addMessage(id: number,  userId: number,message: string,isAI: boolean) {
-
-   const chatTransaction = await db.transaction(async(db) => {
-    const [chat] = await db.select().from(chats).where(eq(chats.id, id));
-    if (!chat) {
-      throw new ChatNotFoundException("Chat with id " + id + " not found");
-    }
-    if(chat.userId !== userId) {
-        throw new Error("User not authorized to add message to this chat");
-
-    }
-
-    const [newMessage] = await db.insert(messages).values({chatId: id, content: message, userId: userId,isAI:isAI}).returning();
-    
-    const [updatedChat] = await db.update(chats).set({updatedAt: new Date().toISOString()}).where(eq(chats.id, id)).returning();
-    if(!newMessage || !updatedChat) {
-      throw new Error("Message not added to chat");
-    }
-    return newMessage;
-  });
-  return chatTransaction;
-    
-  }
+  
   async createChatWithMessage(chat: z.infer<typeof insertChatSchema>, message: string) {
     const chatTransaction = await db.transaction(async (db) =>{
       //Desctructure the chat returned from the insert
@@ -75,12 +53,12 @@ export class ChatService {
       if (!newChat) {
         throw new Error("Chat not created");
       }
-      //Desctructure the message returned from the insert
-      const [createdMessage] = await db.insert(messages).values({chatId: newChat.id, content: message, userId: newChat.userId}).returning();
-      //Check if the message was created
-      if(!createdMessage) {
-        throw new Error("Message not created");
-      }
+      // //Desctructure the message returned from the insert
+      // const [createdMessage] = await db.insert(messages).values({chatId: newChat.id, content: message, userId: newChat.userId}).returning();
+      // //Check if the message was created
+      // if(!createdMessage) {
+      //   throw new Error("Message not created");
+      // }
       
       return newChat;
     });
@@ -119,7 +97,7 @@ export class ChatService {
     const conversationLimit = Math.min(chatMessages.length, 3);
     const conversation = chatMessages
       .slice(0, conversationLimit)
-      .map(msg => msg.content)
+      .map(msg => (msg.message as { content: string }).content)
       .join("\n");
       
     // Generate title prompt
@@ -148,9 +126,34 @@ export class ChatService {
         throw new Error("User not authorized to view messages for this chat id");
     }
           
-    return await db.select().from(messages).where(eq(messages.chatId, id));
+    return await db.select().from(messagesHistory).where(eq(messagesHistory.sessionId, id.toString()));
   }
 
+  async getChatLastMessages (chatId: number,userId: number,messagesNumber:number) {
+    const chat = await db.select().from(chats).where(eq(chats.id, chatId));
+    if(chat.length === 0) {
+        throw new ChatNotFoundException("Chat with id " + chatId + " not found");
+    }
+    if(chat[0].userId !== userId) {
+      throw new Error("User not authorized to view messages for this chat id");
+  }
+
+  
+    const lastTwoChats = db.$with("lastTwoChats").as(
+      db.select()
+        .from(messagesHistory)
+        .where(eq(messagesHistory.sessionId, chatId.toString()))
+        .orderBy(desc(messagesHistory.updatedAt))
+        .limit(2)
+    );
+    const results = await db.with(lastTwoChats).select().from(lastTwoChats).orderBy(asc(lastTwoChats.createdAt));
+
+    return results;
+    
+    
+
+  
+  }
   // Delete a chat by id
   async deleteChat(id: number, userId: number) {
     const chat = await db.select().from(chats).where(eq(chats.id, id));
@@ -160,14 +163,17 @@ export class ChatService {
     if(chat[0].userId !== userId) {
         throw new Error("User not authorized to delete this chat");
     }
-    const messagesDeleted = await db.delete(messages).where(eq(messages.chatId, id)).returning();
+    const messagesDeleted = await db.delete(messagesHistory).where(eq(messagesHistory.sessionId, id.toString())).returning();
     if(messagesDeleted.length === 0) {
         throw new Error("Messages not deleted");
     }
     return await db.delete(chats).where(eq(chats.id, id)).returning();
   }
+  
    
    
 }
+
+
 
 export const chatService = new ChatService();

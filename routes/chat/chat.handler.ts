@@ -21,8 +21,6 @@ export const getChat = async (c:Context) => {
     try {
         const { id } = c.req.param();
         const user = c.get("user");
-        console.log("User ID:", user.id); // Log the user ID
-        console.log("Chat ID:", id); // Log the chat ID
         const chat = await chatService.getChat(parseInt(id), user.id);
         return c.json(chat, 200);
     } catch (error) {
@@ -77,27 +75,33 @@ export const deleteChat = async (c:Context) => {
     }
 }
 
-export const addChatMessage = async (c:Context) => {
-    try {
-        const { id } = c.req.param();
-        const user = c.get("user");
-        const { message,isAI } = await c.req.json();
-        const messageData = await chatService.addMessage(parseInt(id), user.id, message,isAI);
-        return c.json(messageData, 200);
-    } catch (error) {
-        if (error instanceof ChatNotFoundException) {
-            return c.json({ message: error.message }, 404);
-        }
-        throw error;
-    }
-}
+// export const addChatMessage = async (c:Context) => {
+//     try {
+//         const { id } = c.req.param();
+//         const user = c.get("user");
+//         const { message,isAI } = await c.req.json();
+//         const messageData = await chatService.addMessage(parseInt(id), user.id, message,isAI);
+//         return c.json(messageData, 200);
+//     } catch (error) {
+//         if (error instanceof ChatNotFoundException) {
+//             return c.json({ message: error.message }, 404);
+//         }
+//         throw error;
+//     }
+// }
 
 export const getChatMessages = async (c:Context) => {
     try{
-    const { id } = c.req.param();
+    const {id} = c.req.param();
     const user = c.get("user");
-    const chats = await chatService.getChatMessages(parseInt(id), user.id);
-    return c.json(chats, 200);
+
+    const messages = await chatService.getChatMessages(parseInt(id), user.id);
+    if (messages.length === 0) {
+        return c.json({ message: "No messages found for this chat." }, 404);
+    } else {
+        return c.json(messages, 200);
+    }
+    
     }
     catch (error) {
         if (error instanceof ChatNotFoundException) {
@@ -106,6 +110,27 @@ export const getChatMessages = async (c:Context) => {
         throw error;
     }
   }
+export const getChatLastMessages = async (c:Context) => {
+    try{
+    const { id,limit } = c.req.param();
+    const user = c.get("user");
+    console.log(limit);
+    const messages = await chatService.getChatLastMessages(parseInt(id), user.id,parseInt(limit));
+    if (messages.length === 0) {
+        return c.json({ message: "No messages found for this chat." }, 404);
+    } else {
+        return c.json(messages, 200);
+    }
+    
+    }
+    catch (error) {
+        if (error instanceof ChatNotFoundException) {
+            return c.json({ message: error.message }, 404);
+        }
+        throw error;
+    }
+}
+    
   export const generateChatTitle = async (c: Context) => {
     try {
       const { id } = c.req.param();

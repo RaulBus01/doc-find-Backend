@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db } from "../../database/database.ts";
-import { z } from "@hono/zod-openapi";
+import { z } from "npm:@hono/zod-openapi";
 import { users,insertUserSchema, selectUserSchema, usersSchema } from "../../drizzle/schema.ts";
 
 export class UserService {
