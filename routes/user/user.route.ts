@@ -41,7 +41,7 @@ app.post(
       },
     },
   }),
-  zValidator('json', insertUserSchema),
+  
   verifyUserPermissions,
   createUser
 )
