@@ -1,10 +1,11 @@
 import { insertUserSchema, selectUserSchema } from "../../drizzle/schema.ts";
-import createErrorSchema from "stoker/openapi/schemas/create-error-schema";
 import { verifyUserPermissions } from "../../middlewares/Auth.middleware.ts";
 
 import { Hono } from "npm:hono";
 import { describeRoute } from 'hono-openapi';
 import { createUser } from "./user.handler.ts";
+import { resolver, validator as zValidator } from "hono-openapi/zod";
+import { z } from "npm:zod";
 const app = new Hono();
 app.post(
   '/signup',
@@ -12,15 +13,12 @@ app.post(
   describeRoute({
     tags: ['User'],
     description: 'Create user',
-    request: {
-      body: insertUserSchema,
-    },
     responses: {
       200: {
         description: 'User created',
         content: {
           "text/plain": {
-            schema: selectUserSchema,
+            schema: resolver(selectUserSchema),
           }
         },
       },
@@ -28,7 +26,7 @@ app.post(
         description: 'Validation error(s)',
         content: {
           "text/plain": {
-            schema: createErrorSchema(insertUserSchema),
+            schema: resolver(insertUserSchema),
           }
         },
       },
@@ -36,12 +34,14 @@ app.post(
         description: 'Internal server error',
         content: {
           "text/plain": {
-            schema: createErrorSchema(insertUserSchema),
+            schema: resolver(z.object({
+              message: z.string()}))
           }
         },
       },
     },
   }),
+  zValidator('json', insertUserSchema),
   verifyUserPermissions,
   createUser
 )

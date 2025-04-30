@@ -1,4 +1,4 @@
-import { z } from "@hono/zod-openapi";
+import { z } from "npm:@hono/zod-openapi";
 export const ContextUserSchema = z.object({
     age: z.number(),
     gender: z.string(),

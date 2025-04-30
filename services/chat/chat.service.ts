@@ -1,7 +1,7 @@
 import { asc, desc, eq } from "drizzle-orm";
 import { db } from "../../database/database.ts";
 import { chats, insertChatSchema, messagesHistory } from "../../drizzle/schema.ts";
-import { z } from "@hono/zod-openapi";
+import { z } from "npm:@hono/zod-openapi";
 import { ChatNotFoundException } from "../exceptions/ChatNotFoundException.ts";
 import { generateTitleWithGemini } from "../ai-service.ts";
 

@@ -3,26 +3,21 @@ import { verifyUserPermissions } from "../../middlewares/Auth.middleware.ts";
 import { describeRoute } from 'hono-openapi';
 import { attachUser } from "../../middlewares/User.middleware.ts";
 import { selectChatSchema, selectMessagesHistorySchema } from "../../drizzle/schema.ts";
-import { z } from "@hono/zod-openapi";
+import { z } from "npm:@hono/zod-openapi";
 import { createChat, getChat, getChatMessages,deleteChat, getChats, generateChatTitle, getChatLastMessages } from "./chat.handler.ts";
-
+import { resolver, validator as zValidator } from "hono-openapi/zod";
 const app = new Hono();
 app.post(
   '/',
   describeRoute({
     tags: ['Chat'],
     description: 'Create chat',
-    request: {
-      body: z.object({
-        message: z.string(),
-      })
-    },
     responses: {
       200: {
         description: 'Chat created',
         content: {
           "application/json": {
-            schema: selectChatSchema,
+            schema: resolver(selectChatSchema),
           }
         },
       },
@@ -30,7 +25,7 @@ app.post(
         description: 'Chat not created',
         content: {
           "application/json": {
-            schema: z.object({ message: z.string() }),
+            schema: resolver(z.object({ message: z.string() })),
           }
         },
       },
@@ -45,37 +40,29 @@ app.post(
     describeRoute({
       tags: ['Chat'],
       description: 'Get all chats',
-      request:{
-        query:z.object({
-          limit:z.string()
-          .optional()
-          .transform((val)=>val ? parseInt(val) : undefined)
-          .refine((val) => !val || (val > 0 && val <= 50), {
-            message: 'Limit must be between 1 and 50'
-          }),
-        
-        })
-      },
       responses: {
         200: {
           description: 'List of user chats',
           content: {
-            "text/plain": {
-              schema: selectChatSchema.array(),
-
+            "application/json": {
+              schema: resolver(selectChatSchema.array()),
             }
           },
         },
         404: {
           description: 'Chat not found',
           content: {
-            "text/plain": {
-              schema: z.object({ message: z.string() }),
+            "application/json": {
+              schema: resolver(z.object({ message: z.string() })),
             }
           },
         },
       },
     }),
+    zValidator('query', z.object({
+      page: z.number().optional(),
+      limit: z.number().optional(),
+    })),
     verifyUserPermissions,
     attachUser,
     getChats
@@ -86,17 +73,13 @@ app.post(
     describeRoute({
       tags: ['Chat'],
       description: 'Get chat by id',
-      request:{
-        params:z.object({
-          id:z.string()
-        })
-      },
+
       responses: {
         200: {
           description: 'Chat',
           content: {
-            "text/plain": {
-              schema: z.object({ message: z.string() }),
+            "application/json": {
+              schema: resolver(selectChatSchema), // Assuming getChat returns a single chat object
             }
           },
         },
@@ -104,7 +87,7 @@ app.post(
           description: 'Chat not found',
           content: {
             "text/plain": {
-              schema: z.object({ message: z.string() }),
+              schema: resolver(z.object({ message: z.string() })),
             }
           },
         },
@@ -119,17 +102,13 @@ app.post(
     describeRoute({
       tags: ['Chat'],
       description: 'Delete chat by id',
-      request:{
-        params:z.object({
-          id:z.string()
-        })
-      },
+
       responses: {
         200: {
           description: 'Chat deleted',
           content: {
-            "text/plain": {
-              schema: z.object({ message: z.string() }),
+            "application/json": {
+              schema:resolver(z.object({ message: z.string() })),
             }
           },
         },
@@ -137,7 +116,7 @@ app.post(
           description: 'Chat not found',
           content: {
             "text/plain": {
-              schema: z.object({ message: z.string() }),
+              schema:resolver(z.object({ message: z.string() })),
             }
           },
         },
@@ -152,21 +131,12 @@ app.post(
     describeRoute({
       tags: ['Chat'],
       description: 'Add message to chat',
-      request:{
-        params:z.object({
-          id:z.string(),
-          isAI:z.boolean()
-        }),
-        body:z.object({
-          message:z.string()
-        })
-      },
       responses: {
         200: {
           description: 'Message added',
           content: {
-            "text/plain": {
-              schema: z.object({ message: z.string() }),
+            "application/json": {
+              schema: resolver(selectMessagesHistorySchema)
             }
           },
         },
@@ -174,7 +144,7 @@ app.post(
           description: 'Chat not found',
           content: {
             "text/plain": {
-              schema: z.object({ message: z.string() }),
+              schema: resolver(z.object({ message: z.string() })),
             }
           },
         },
@@ -189,17 +159,13 @@ app.post(
     describeRoute({
       tags: ['Chat'],
       description: 'Get chat messages',
-      request:{
-        params:z.object({
-          id:z.string()
-        })
-      },
+  
       responses: {
         200: {
           description: 'List of chat messages',
           content: {
-            "text/plain": {
-              schema: selectMessagesHistorySchema.array(),
+            "application/json": {
+              schema: resolver(selectMessagesHistorySchema.array()),
             }
           },
         },
@@ -207,7 +173,7 @@ app.post(
           description: 'Chat not found',
           content: {
             "text/plain": {
-              schema: z.object({ message: z.string() }),
+              schema: resolver(z.object({ message: z.string() })),
             }
           },
         },
@@ -222,18 +188,12 @@ app.post(
     describeRoute({
       tags: ['Chat'],
       description: 'Get last messages of chat',
-      request:{
-        params:z.object({
-          id:z.string(),
-          limit:z.string()
-        })
-      },
       responses: {
         200: {
           description: 'List of chat messages',
           content: {
             "text/plain": {
-              schema: selectMessagesHistorySchema.array(),
+              schema: resolver(selectMessagesHistorySchema.array()),
             }
           },
         },
@@ -241,7 +201,7 @@ app.post(
           description: 'Chat not found',
           content: {
             "text/plain": {
-              schema: z.object({ message: z.string() }),
+              schema: resolver(z.object({ message: z.string() })),
             }
           },
         },
@@ -256,17 +216,12 @@ app.post(
     describeRoute({
       tags: ['Chat'],
       description: 'Generate a title for the chat',
-      request:{
-        params:z.object({
-          id:z.string()
-        })
-      },
       responses: {
         200: {
           description: 'Title generated successfully',
           content: {
-            "text/plain": {
-              schema: selectChatSchema,
+            "application/json": {
+              schema: resolver(selectChatSchema),
             }
           },
         },
@@ -274,7 +229,7 @@ app.post(
           description: 'Chat not found',
           content: {
             "text/plain": {
-              schema: z.object({ message: z.string() }),
+              schema: resolver(z.object({ message: z.string() })),
             }
           },
         },

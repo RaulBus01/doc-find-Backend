@@ -1,4 +1,4 @@
-import type { OpenAPIHono, RouteConfig, RouteHandler } from "@hono/zod-openapi";
+import type { OpenAPIHono, RouteConfig, RouteHandler } from "npm:@hono/zod-openapi";
 
 export type AppOpenAPI = OpenAPIHono;
 

@@ -1,6 +1,6 @@
 
 import { validator} from "npm:hono/validator";
-import { z } from "@hono/zod-openapi";
+import { z } from "npm:@hono/zod-openapi";
 import { ContextUserSchema } from "../types/ContextType.ts";
 import { AIModel } from "../types/types.ts";
 

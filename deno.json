@@ -8,7 +8,6 @@
   "imports": {
     "@google/generative-ai": "npm:@google/generative-ai@^0.24.0",
     "@hig/jwt": "jsr:@hig/jwt@^0.1.1",
-    "@hono/swagger-ui": "npm:@hono/swagger-ui@^0.5.0",
     "@hono/zod-openapi": "npm:@hono/zod-openapi@^0.19.5",
     "@huggingface/transformers": "npm:@huggingface/transformers@^3.3.2",
     "@langchain/community": "npm:@langchain/community@^0.3.41",
@@ -31,7 +30,7 @@
     "hono-openapi": "npm:hono-openapi@^0.4.6",
     "langchain": "npm:langchain@^0.3.23",
     "pg": "npm:pg@^8.15.0",
-    "stoker": "npm:stoker@^1.4.2"
+    "zod-openapi": "npm:zod-openapi@^4.2.4"
   },
   "deploy": {
     "project": "ae0de193-784a-4644-91fd-52bf1beafa3b",
@@ -40,5 +39,6 @@
     ],
     "include": [],
     "entrypoint": "index.ts"
-  }
+  },
+   "nodeModulesDir": "auto"
 }

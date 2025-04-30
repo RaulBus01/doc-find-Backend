@@ -2,26 +2,23 @@ import "jsr:@std/dotenv/load";
 
 import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory} from "@google/generative-ai";
 import { ContextUser } from "../types/ContextType.ts";
-import pg from "npm:pg";
+
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import {
   ChatPromptTemplate,
   MessagesPlaceholder,
 } from "@langchain/core/prompts";
-import { StringOutputParser } from "@langchain/core/output_parsers";
-import { RunnableWithMessageHistory } from "@langchain/core/runnables";
-import { PostgresChatMessageHistory } from "@langchain/community/stores/message/postgres";
+
 import { ChatMistralAI } from "@langchain/mistralai";
 import { AIModel } from "../types/types.ts";
 
 import { Logger } from "../utils/logger.ts";
-import { DuckDuckGoSearch } from "@langchain/community/tools/duckduckgo_search";
+
 const logger = new Logger("AIService");
 
-const searchTool = new DuckDuckGoSearch();
-import { createToolCallingAgent } from "langchain/agents";
-import { AgentExecutor } from "langchain/agents";
-import { LanguageModelLike } from "@langchain/core";
+
+import { graph } from "../langgraph/graph.ts";
+import { HumanMessage } from "@langchain/core/messages";
 
 
 
@@ -77,39 +74,7 @@ const modelMap = (model: AIModel) => {
 }
 
 
-const baseContext = `You are an AI medical assistant. Your task is to analyze the given text and provide a possible diagnosis based on the symptoms and information provided.
-Consider the entities marked in the text (if any) and their relevance to potential medical conditions`;
-const agentContext = `You can also use the search tool to find relevant information and provide a more accurate diagnosis.`;
-// const baseContext = "You are an AI assistant";
-const buildSystemMessage = (contextData?: ContextUser | string) => {
-  if (!contextData) {
-    return baseContext;
-  }
-  const contextString = Object.entries(contextData)
-    .map(([key, value]) => `${key}: ${value}`)
-    .join(", ");
-  return `${baseContext} with the following context about patient: ${contextString} + ${agentContext}`;
-}
 
-const poolConfig = {
-  host: Deno.env.get("DB_HOST"),
-  port: 5432,
-  user: Deno.env.get("DB_USER"),
-  password: Deno.env.get("DB_PASSWORD"),
-  database: Deno.env.get("DB_NAME"),
-  ssl: true
-};
-
-const pool = new pg.Pool(poolConfig);
-
-const modelPrompt = ChatPromptTemplate.fromMessages([
-  ["system", "{context_string}"],
-  new MessagesPlaceholder("chat_history"),
-  ["human", "{input}"],
-  new MessagesPlaceholder("agent_scratchpad"),
-]);
-
-const tools =[searchTool];
 
 
 
@@ -117,57 +82,28 @@ const tools =[searchTool];
 const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,contextData?: ContextUser, streamHandler?: (chunk: string) => void) => {
   try {
 
-    const model = modelMap(modelType) as LanguageModelLike;
-    const agent = createToolCallingAgent({
-      llm: model,
-      tools,
-      prompt: modelPrompt,
-      verbose: true,
-    });
-    const agentExecutor = new AgentExecutor({
-      agent,
-      tools,
-    });
+    const config = { configurable: { sessionId:chatId.toString() }, version: "v2" as const,streamMode:"messages" as const };
+    const inputMessage = new HumanMessage({ content: message });
 
-    // //@ts-ignore "@langchain/mistralai" does not have a type definition
-    // const chain = modelPrompt.pipe(model).pipe(new StringOutputParser());
-    const chainWithHistory = new RunnableWithMessageHistory({
-      runnable: agentExecutor,
-      inputMessagesKey: "input",
-      historyMessagesKey: "chat_history",
-  
-      getMessageHistory: (sessionId: string) => {
-        const chatHistory = new PostgresChatMessageHistory({
-          sessionId,
-          pool,
-          tableName: "messages_history",
-          
-          
-        });
-        return chatHistory;
-      },
-    });
-
-
-    
-    
-
-
-    const response = await chainWithHistory.stream(
+    const response = graph.streamEvents(
       {
-        input: message,
-        context_string: buildSystemMessage(contextData),
-
+        messages: [inputMessage],
+        contextData: contextData,
       },
-      {
-        configurable: {
-          sessionId: chatId.toString(),
-          
-          
-        },
-      }
+      config
     );
 
+ 
+    // for await (const chunk of response) {
+    //   if (typeof chunk === 'string') {
+    //     console.log("Chunk:", chunk);
+    //   }
+    // }
+    // Here, let's confirm that the AI remembers our name!
+    
+      
+
+    
 
 
     for await (const chunk of response) {
@@ -175,27 +111,11 @@ const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,
         if (streamHandler) {
           streamHandler(chunk);
         }
-      } else if (typeof chunk === 'object' && chunk !== null) {
-        // Handle object chunks from agent responses
-        if (chunk.output !== undefined) {
-          // AI response content
-          console.log(chunk.output);
-          if (streamHandler && typeof chunk.output === 'string') {
-            streamHandler(chunk.output);
-          }
-        } else if (chunk.tokens !== undefined) {
-          // Some LLMs return tokens
-          if (streamHandler && typeof chunk.tokens === 'string') {
-            streamHandler(chunk.tokens);
-          }
-        } else {
-          // Log object structure to understand what's available
+      } 
           logger.debug("Chunk structure:", JSON.stringify(chunk));
         }
-      } else {
-        logger.warn("Unexpected chunk type:", typeof chunk);
-      }
-    }
+      
+    
 
     // const followUpPrompt = `Based on the conversation so far, suggest one relevant follow-up question the user might ask next.`;
     // const followUpResponse = await chainWithHistory.invoke(

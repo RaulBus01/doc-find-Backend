@@ -1,7 +1,7 @@
 // schema.ts
 
 // deno --env -A --node-modules-dir npm:drizzle-kit push   
-import { pgTable, serial, text, timestamp, varchar, integer,boolean, jsonb, uniqueIndex, index } from "drizzle-orm/pg-core";
+import { pgTable, serial, text, timestamp, varchar, integer,boolean, jsonb} from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod"
 
 export const users = pgTable("users", {
