@@ -9,7 +9,6 @@ import { z } from "npm:zod";
 const app = new Hono();
 app.post(
   '/signup',
-  
   describeRoute({
     tags: ['User'],
     description: 'Create user',
@@ -41,7 +40,6 @@ app.post(
       },
     },
   }),
-  
   verifyUserPermissions,
   createUser
 )
