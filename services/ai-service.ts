@@ -82,7 +82,7 @@ const modelMap = (model: AIModel) => {
 const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,contextData?: ContextUser, streamHandler?: (chunk: string) => void) => {
   try {
 
-    const config = { configurable: { sessionId:chatId.toString() }, version: "v2" as const,streamMode:"messages" as const };
+    const config = { configurable: { thread_id:chatId.toString() }, version: "v2" as const,streamMode:"messages" as const };
     const inputMessage = new HumanMessage({ content: message });
 
  
@@ -91,7 +91,7 @@ const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,
       {
         messages: [inputMessage],
         contextData: contextData,
-        sessionId: chatId.toString(),
+  
       },
       config
     );
