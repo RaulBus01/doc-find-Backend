@@ -64,7 +64,7 @@ app.post(
         } catch (error) {
 
           const errorToLog = error instanceof Error ? error : new Error(String(error));
-          logger.error("Error in streaming AI response", errorToLog, { userId });
+          // logger.error("Error in streaming AI response", errorToLog, { userId });
           controller.enqueue(new TextEncoder().encode("Error: Failed to process AI response"));
         } finally {
           controller.close();

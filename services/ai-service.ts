@@ -18,7 +18,7 @@ const logger = new Logger("AIService");
 
 
 import { graph } from "../langgraph/graph.ts";
-import { HumanMessage } from "@langchain/core/messages";
+import { AIMessage, HumanMessage } from "@langchain/core/messages";
 
 
 
@@ -85,36 +85,48 @@ const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,
     const config = { configurable: { sessionId:chatId.toString() }, version: "v2" as const,streamMode:"messages" as const };
     const inputMessage = new HumanMessage({ content: message });
 
+ 
+
     const response = graph.streamEvents(
       {
         messages: [inputMessage],
         contextData: contextData,
+        sessionId: chatId.toString(),
       },
       config
     );
 
- 
-    // for await (const chunk of response) {
-    //   if (typeof chunk === 'string') {
-    //     console.log("Chunk:", chunk);
-    //   }
-    // }
-    // Here, let's confirm that the AI remembers our name!
-    
-      
-
-    
-
+    let isStreaming = false;
 
     for await (const chunk of response) {
-      if (typeof chunk === 'string') {
-        if (streamHandler) {
-          streamHandler(chunk);
+      if (typeof chunk === 'object') {
+        // Extract message content from different event types
+        if (chunk.event === 'on_chat_model_stream' && chunk.data?.chunk?.content) {
+          // Handle streaming chunks
+          if (streamHandler) {
+            streamHandler(chunk.data.chunk.content);
+          }
+          isStreaming = true;
+        } 
+        else if (chunk.event === 'on_chain_end' && !isStreaming) {
+          // If we haven't streamed yet, get content from the final message
+          if (chunk.data?.output?.messages) {
+            const messages = chunk.data.output.messages;
+            // Find the last AI message in the array
+            const aiMessage = messages.find(m => m.constructor.name.includes('AIMessage'));
+            if (aiMessage && aiMessage.content && streamHandler) {
+              streamHandler(aiMessage.content);
+            }
+          }
         }
-      } 
-          logger.debug("Chunk structure:", JSON.stringify(chunk));
-        }
+      }
       
+      // Handle direct string chunks (fallback)
+      else if (typeof chunk === 'string' && streamHandler) {
+        streamHandler(chunk);
+      }
+    }
+  
     
 
     // const followUpPrompt = `Based on the conversation so far, suggest one relevant follow-up question the user might ask next.`;
