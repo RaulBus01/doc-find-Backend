@@ -4,7 +4,7 @@ import { describeRoute } from 'hono-openapi';
 import { attachUser } from "../../middlewares/User.middleware.ts";
 import { selectChatSchema, selectMessagesHistorySchema } from "../../drizzle/schema.ts";
 import { z } from "npm:@hono/zod-openapi";
-import { createChat, getChat, getChatMessages,deleteChat, getChats, generateChatTitle, getChatLastMessages } from "./chat.handler.ts";
+import { createChat, getChat, getChatMessages,deleteChat, getChats, generateChatTitle, getChatLastMessages, getChatCount } from "./chat.handler.ts";
 import { resolver, validator as zValidator } from "hono-openapi/zod";
 const app = new Hono();
 app.post(
@@ -36,6 +36,34 @@ app.post(
   createChat
 )
 .get(
+    '/counter',
+    describeRoute({
+      tags: ['Chat'],
+      description: 'Get chat count',
+      responses: {
+        200: {
+          description: 'Chat count',
+          content: {
+            "application/json": {
+              schema: resolver(z.object({ count: z.number() })),
+            }
+          },
+        },
+        404: {
+          description: 'Chat not found',
+          content: {
+            "text/plain": {
+              schema: resolver(z.object({ message: z.string() })),
+            }
+          },
+        },
+      },
+    }),
+    verifyUserPermissions,
+    attachUser,
+    getChatCount
+  )
+.get(
     '/getChats/',
     describeRoute({
       tags: ['Chat'],
@@ -66,7 +94,6 @@ app.post(
     attachUser,
     getChats
   )
-  
   .get(
     '/:id',
     describeRoute({
@@ -96,6 +123,7 @@ app.post(
     attachUser,
     getChat 
   )
+  
   .delete(
     '/:id',
     describeRoute({

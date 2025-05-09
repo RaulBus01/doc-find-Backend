@@ -1,4 +1,4 @@
-import { asc, desc, eq } from "drizzle-orm";
+import { count, desc, eq, sql } from "drizzle-orm";
 import { checkpointer, db } from "../../database/database.ts";
 import { chats, insertChatSchema, messagesHistory } from "../../drizzle/schema.ts";
 import { z } from "npm:@hono/zod-openapi";
@@ -6,6 +6,8 @@ import { ChatNotFoundException } from "../exceptions/ChatNotFoundException.ts";
 import { generateTitleWithGemini } from "../ai-service.ts";
 import { Checkpoint } from "@langchain/core";
 import { BaseMessage, isAIMessage } from "@langchain/core/messages";
+
+
 export class ChatService {
   // Create a new chat in the database
   async createChat(chat: z.infer<typeof insertChatSchema>) {
@@ -34,8 +36,23 @@ export class ChatService {
   
   return chatsData;
   }
+
+  async getChatsCount(userId: number) {
+    console.log("User ID:", userId);
+    const chatsCount = await db
+      .select({
+        count: count(),
+      })
+      .from(chats)
+      .where(eq(chats.userId, userId));
+    if (count.length === 0) {
+      throw new ChatNotFoundException("Chats not found for user id " + userId);
+    }
+    return chatsCount[0].count;
+  }
   // Get a chat by id
   async getChat(id: number, userId: number) {
+    console.log("User ID:", userId);
     const chat = await db.select().from(chats).where(eq(chats.id, id));
     if(chat.length === 0) {
         throw new ChatNotFoundException("Chat with id " + id + " not found");
@@ -193,11 +210,30 @@ export class ChatService {
     if(chat[0].userId !== userId) {
         throw new Error("User not authorized to delete this chat");
     }
-    const messagesDeleted = await db.delete(messagesHistory).where(eq(messagesHistory.sessionId, id.toString())).returning();
-    if(messagesDeleted.length === 0) {
-        throw new Error("Messages not deleted");
+    
+    try {
+   
+      const threadId = id.toString();
+      
+      // Delete all checkpoint data from PostgreSQL tables using SQL
+      await db.execute(sql`DELETE FROM checkpoint_blobs WHERE thread_id = ${threadId}`);
+      await db.execute(sql`DELETE FROM checkpoint_writes WHERE thread_id = ${threadId}`);
+      await db.execute(sql`DELETE FROM checkpoints WHERE thread_id = ${threadId}`);
+      
+      // Finally delete the chat itself
+      await db.delete(chats).where(eq(chats.id, id));
+      
+      return { success: true, message: `Chat ${id} deleted successfully` };
+    } catch (error) {
+      console.error(`Error deleting chat ${id}:`, error);
+      if (error instanceof Error) {
+        throw new Error(`Failed to delete chat: ${error.message}`);
+      } else {
+        throw new Error(`Failed to delete chat: An unknown error occurred`);
+      }
     }
-    return await db.delete(chats).where(eq(chats.id, id)).returning();
+     
+ 
   }
   
    

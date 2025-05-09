@@ -30,6 +30,19 @@ export const getChat = async (c:Context) => {
         throw error;
     }
 }
+export const getChatCount = async (c:Context) => {
+    try {
+        console.log("Getting chat count");
+        const user = c.get("user");
+        const count = await chatService.getChatsCount(user.id);
+        return c.json(count, 200);
+    } catch (error) {
+        if (error instanceof ChatNotFoundException) {
+            return c.json({ message: error.message }, 404);
+        }
+        throw error;
+    }
+}
 export const createChat = async (c: Context) => {
     try {
         const user = c.get("user");
