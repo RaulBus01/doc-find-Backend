@@ -5,7 +5,8 @@ import { z } from "npm:@hono/zod-openapi";
 import { ChatNotFoundException } from "../exceptions/ChatNotFoundException.ts";
 import { generateTitleWithGemini } from "../ai-service.ts";
 import { Checkpoint } from "@langchain/core";
-import { BaseMessage, isAIMessage } from "@langchain/core/messages";
+import { BaseMessage, isAIMessage,filterMessages, HumanMessage, AIMessage, AIMessageChunk } from "@langchain/core/messages";
+
 
 
 export class ChatService {
@@ -117,19 +118,19 @@ export class ChatService {
    
     
     // Extract the conversation for context (limit to first few messages)
-    const chatMessages = extractMessagesFromCheckpoint(checkpoint, chatId.toString(), 2);
+    const chatMessages = extractMessagesFromCheckpoint(checkpoint, chatId.toString());
     const chatContent = chatMessages.map((message) => message.content).join("\n");
       
     // Generate title prompt
     const titlePrompt = `Create a concise, descriptive title (maximum 5 words) for this conversation. If the conversation lacks a clear specific topic, generate the default title "General Discussion".
-    Conversation:${chatContent}`;
+    Conversation:`;
     try {
       // Import the Gemini title generator
       
-      const title = await generateTitleWithGemini(titlePrompt);
+      const title = await generateTitleWithGemini(titlePrompt,chatContent);
       
       // Update the chat with the new title
-      return await this.updateChatTitle(chatId, userId, title);
+      return await this.updateChatTitle(chatId, userId, title.toString());
     } catch (error) {
       console.error("Failed to generate title:", error);
       throw error;
@@ -160,7 +161,7 @@ export class ChatService {
 
   }
 
-  async getChatLastMessages (chatId: number,userId: number,messagesNumber:number) {
+  async getChatLastMessages (chatId: number,userId: number) {
     const chat = await db.select().from(chats).where(eq(chats.id, chatId));
     if(chat.length === 0) {
         throw new ChatNotFoundException("Chat with id " + chatId + " not found");
@@ -174,7 +175,7 @@ export class ChatService {
     }
    });
     if(checkpoint) {
-      return extractMessagesFromCheckpoint(checkpoint,chatId.toString(),messagesNumber);
+      return extractMessagesFromCheckpoint(checkpoint,chatId.toString());
     }
     else {
       console.warn("No checkpoint found for chat id " + chatId);
@@ -185,18 +186,6 @@ export class ChatService {
   
  
 
-  
-    // const lastTwoChats = db.$with("lastTwoChats").as(
-    //   db.select()
-    //     .from(messagesHistory)
-    //     .where(eq(messagesHistory.sessionId, chatId.toString()))
-    //     .orderBy(desc(messagesHistory.updatedAt))
-    //     .limit(2)
-    // );
-    // const results = await db.with(lastTwoChats).select().from(lastTwoChats).orderBy(asc(lastTwoChats.createdAt));
-
-    // return results;
-    
     
 
   
@@ -244,39 +233,46 @@ export class ChatService {
 
 export const chatService = new ChatService();
 
-function extractMessagesFromCheckpoint(checkpoint: Checkpoint<string, string>,sessionId?: string,limit?: number): { id: string; chatId: string; isAI: boolean; content: string }[] {
+function extractMessagesFromCheckpoint(checkpoint: Checkpoint<string, string>, sessionId?: string): { id: string; chatId: string; isAI: boolean; content: string }[] {
   try {
-   
     if (!checkpoint?.channel_values?.messages) {
       console.warn("No messages found in checkpoint");
       return [];
     }
-    let messages;
-
-    if(limit && limit > 0) {
-      messages = checkpoint.channel_values.messages.slice(-2);
-    } 
-    else{
-      messages = checkpoint.channel_values.messages;
-    }
-   
-    const extractedMessages = messages.map((message: BaseMessage) => {
+    
+    //  Filter by message type first
+    const messagesArray = filterMessages(checkpoint.channel_values.messages, {
+      includeTypes: [HumanMessage, AIMessage, AIMessageChunk],
+    });
+    
+    //  Then filter out messages without content
+    const messagesWithContent = messagesArray.filter((message: BaseMessage) => {
+      return message.content !== undefined && 
+             !(typeof message.content === "string" && message.content.trim() === "");
+    });
+    
  
+    let messages: BaseMessage[] = [];
+
+    messages = messagesWithContent;
+ 
+  
+    if (messages.length === 0) {
+      console.warn("No messages with content found");
+      return [];
+    }
+    
+    // Convert to the required format
+    const extractedMessages = messages.map((message: BaseMessage) => {
       return {
-        id: message.id,
-        chatId: sessionId,
+        id: message.id ?? "",
+        chatId: sessionId ?? "",
         isAI: isAIMessage(message),
-        content: message.content,
-      
+        content: typeof message.content === "string" ? message.content : JSON.stringify(message.content),
       };
     });
-   
-
-    return extractedMessages;
-   
-
     
-  
+    return extractedMessages;
   } catch (error) {
     console.error("Error extracting messages from checkpoint:", error);
     return [];

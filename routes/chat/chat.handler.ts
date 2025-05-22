@@ -125,10 +125,10 @@ export const getChatMessages = async (c:Context) => {
   }
 export const getChatLastMessages = async (c:Context) => {
     try{
-    const { id,limit } = c.req.param();
+    const { id} = c.req.param();
     const user = c.get("user");
-    console.log(limit);
-    const messages = await chatService.getChatLastMessages(parseInt(id), user.id,parseInt(limit));
+
+    const messages = await chatService.getChatLastMessages(parseInt(id), user.id);
     if (messages && messages.length === 0) {
         return c.json({ message: "No messages found for this chat." }, 404);
     } else {
