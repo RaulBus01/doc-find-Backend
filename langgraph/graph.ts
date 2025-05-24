@@ -6,7 +6,7 @@ Annotation,
   START,
   StateGraph,
 } from "@langchain/langgraph";
-import { AIMessage, BaseMessage } from "@langchain/core/messages";
+import { AIMessage, AIMessageChunk, BaseMessage, filterMessages, HumanMessage } from "@langchain/core/messages";
 import { isAIMessage } from "@langchain/core/messages";
 import { ChatMistralAI } from "@langchain/mistralai";
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
@@ -17,6 +17,7 @@ import { z } from "npm:zod";
 import { TavilySearch } from "@langchain/tavily";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { checkpointer } from "../database/database.ts";
+import { googlePlaceTool } from "./GooglePlaces.ts";
 const llm = new ChatMistralAI({
   
   model: "mistral-small-latest",
@@ -30,7 +31,9 @@ const webSearchTool = new TavilySearch({
 
 
 
-const tools = [webSearchTool];
+
+
+const tools = [googlePlaceTool,webSearchTool];
 
 
 //@ts-ignore tools
@@ -57,8 +60,32 @@ const modelPrompt = ChatPromptTemplate.fromMessages([
 
 const baseContext = `You are an AI medical assistant. Your task is to analyze the given text and provide a possible diagnosis based on the symptoms and information provided.
 Consider the entities marked in the text (if any) and their relevance to potential medical conditions`;
-const agentContext ="If you are unsure about the diagnosis you can search online using web search tool";
 
+const agentContext = `
+If you are unsure about the diagnosis you can search online using web search tool.
+
+For location-based queries:
+1. If a location is already provided in the patient context or explicitly mentioned in the user message, use the Google Places tool to find relevant healthcare providers nearby (hospitals, clinics, pharmacies, etc.) based on their symptoms or needs.
+2. If NO location information is available and the user requests nearby facilities, politely ask for permission to access their location with a message like: "To find medical facilities near you, I'll need your location. Would you be willing to share your location?"
+
+When presenting results from Google Places, format each place as follows:
+\`\`\`json
+{
+  "name": "Facility Name",
+  "address": "Full address",
+  "rating": 4.5,
+  "user_ratings_total": 123,
+  "business_status": "OPERATIONAL",
+  "types": ["hospital", "health", "point_of_interest"],
+  "opening_hours": {
+    "open_now": true
+  }
+}
+\`\`\`
+
+Always check if you have location information before attempting to use the Google Places tool.
+Present the results as a readable list, while maintaining the JSON structure for each place.
+`;
 
 export const buildSystemMessage = (contextData?: ContextUser | string) => {
   if (!contextData) {
@@ -78,6 +105,7 @@ const callModel = async (state: typeof GraphAnnotation.State,options?:{
   signal?: AbortSignal;
 }) => {
   const { messages } = state;
+
   const {contextData} = state;
   const abortSignal = options?.signal;
   console.log("abortSignal",abortSignal)
@@ -111,6 +139,7 @@ const callModel = async (state: typeof GraphAnnotation.State,options?:{
 
 const shouldContinue = (state: typeof MessagesAnnotation.State) => {
   const { messages } = state;
+
   const lastMessage = messages[messages.length - 1];
 
   
