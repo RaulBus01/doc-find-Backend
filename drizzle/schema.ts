@@ -18,6 +18,8 @@ export const users = pgTable("users", {
   updatedAt: timestamp("updated_at", { mode: "string" }).defaultNow(),
 });
 
+
+
 export const chats = pgTable("chats", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
@@ -86,6 +88,8 @@ export const selectUserSchema= createSelectSchema(users).required({
   oauthId: true,
   updatedAt: true,
 });
+
+
 
 
 

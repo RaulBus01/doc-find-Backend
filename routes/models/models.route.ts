@@ -27,6 +27,16 @@ app.post(
           },
         }
       },
+      400: {
+        description: 'Invalid request',
+        content: {
+          "application/json": {
+            schema: resolver(z.object({
+              error: z.string(),
+            })),
+          }
+        },
+      },
     
       500: {
         description: 'Error processing request',
@@ -43,32 +53,43 @@ app.post(
   validateStreamAndSaveRequest,
   (c) => {
     const { message, chatId, context,userId,modelType } = c.req.valid('json');
-
+    const abortSignal = c.req.raw.signal;
+  
     const stream = new ReadableStream({
       async start(controller) {
         let completeResponse = "";
         
+        const onAbort = () => {
+          logger.warn("Streaming aborted by client");
+          controller.close();
+        }
+        abortSignal?.addEventListener("abort", onAbort);
         try {
           // Stream AI response to client while accumulating it
           await getAPIResponse(chatId,message,modelType,context, async (chunk: string) => {
-
             if (chunk) {
-              // Send chunk to client
               controller.enqueue(new TextEncoder().encode(chunk));
-              // Add to complete response
+
               completeResponse += chunk;
             }
-          });
+          }, abortSignal);
+
           
         
         } catch (error) {
 
           const errorToLog = error instanceof Error ? error : new Error(String(error));
-          logger.error("Error in streaming AI response", errorToLog, { userId });
-          controller.enqueue(new TextEncoder().encode("Error: Failed to process AI response"));
+          controller.error(errorToLog);
+     
+   
         } finally {
+          abortSignal?.removeEventListener("abort", onAbort);
           controller.close();
         }
+      },
+      cancel(reason) {
+        logger.warn("Streaming cancelled", reason);
+        
       }
     });
 

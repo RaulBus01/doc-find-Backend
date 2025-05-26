@@ -1,9 +1,13 @@
-import { asc, desc, eq } from "drizzle-orm";
-import { db } from "../../database/database.ts";
+import { count, desc, eq, sql } from "drizzle-orm";
+import { checkpointer, db } from "../../database/database.ts";
 import { chats, insertChatSchema, messagesHistory } from "../../drizzle/schema.ts";
 import { z } from "npm:@hono/zod-openapi";
 import { ChatNotFoundException } from "../exceptions/ChatNotFoundException.ts";
 import { generateTitleWithGemini } from "../ai-service.ts";
+import { Checkpoint } from "@langchain/core";
+import { BaseMessage, isAIMessage,filterMessages, HumanMessage, AIMessage, AIMessageChunk } from "@langchain/core/messages";
+
+
 
 export class ChatService {
   // Create a new chat in the database
@@ -33,8 +37,23 @@ export class ChatService {
   
   return chatsData;
   }
+
+  async getChatsCount(userId: number) {
+    console.log("User ID:", userId);
+    const chatsCount = await db
+      .select({
+        count: count(),
+      })
+      .from(chats)
+      .where(eq(chats.userId, userId));
+    if (count.length === 0) {
+      throw new ChatNotFoundException("Chats not found for user id " + userId);
+    }
+    return chatsCount[0].count;
+  }
   // Get a chat by id
   async getChat(id: number, userId: number) {
+    console.log("User ID:", userId);
     const chat = await db.select().from(chats).where(eq(chats.id, id));
     if(chat.length === 0) {
         throw new ChatNotFoundException("Chat with id " + id + " not found");
@@ -88,28 +107,30 @@ export class ChatService {
   }
   async generateAndUpdateTitle(chatId: number, userId: number) {
     // Get the first few messages to generate a meaningful title
-    const chatMessages = await this.getChatMessages(chatId, userId);
-    if (chatMessages.length === 0) {
-      throw new Error("No messages found to generate title");
+    const checkpoint = await checkpointer.get({
+      configurable: {
+        thread_id: chatId.toString(),
+      }
+     });
+    if (!checkpoint) {
+      throw new ChatNotFoundException("Checkpoint not found for chat id " + chatId);
     }
+   
     
     // Extract the conversation for context (limit to first few messages)
-    const conversationLimit = Math.min(chatMessages.length, 3);
-    const conversation = chatMessages
-      .slice(0, conversationLimit)
-      .map(msg => (msg.message as { content: string }).content)
-      .join("\n");
+    const chatMessages = extractMessagesFromCheckpoint(checkpoint, chatId.toString());
+    const chatContent = chatMessages.map((message) => message.content).join("\n");
       
     // Generate title prompt
     const titlePrompt = `Create a concise, descriptive title (maximum 5 words) for this conversation. If the conversation lacks a clear specific topic, generate the default title "General Discussion".
-    Conversation:${conversation}`;
+    Conversation:`;
     try {
       // Import the Gemini title generator
       
-      const title = await generateTitleWithGemini(titlePrompt);
+      const title = await generateTitleWithGemini(titlePrompt,chatContent);
       
       // Update the chat with the new title
-      return await this.updateChatTitle(chatId, userId, title);
+      return await this.updateChatTitle(chatId, userId, title.toString());
     } catch (error) {
       console.error("Failed to generate title:", error);
       throw error;
@@ -125,11 +146,22 @@ export class ChatService {
     if(chat[0].userId !== userId) {
         throw new Error("User not authorized to view messages for this chat id");
     }
-          
-    return await db.select().from(messagesHistory).where(eq(messagesHistory.sessionId, id.toString()));
+
+   const checkpoint = await checkpointer.get({
+    configurable: {
+      thread_id: id.toString(),
+    }
+   });
+    if(checkpoint) {
+      return extractMessagesFromCheckpoint(checkpoint,id.toString());
+    }
+    else {
+      console.warn("No checkpoint found for chat id " + id);
+    }
+
   }
 
-  async getChatLastMessages (chatId: number,userId: number,messagesNumber:number) {
+  async getChatLastMessages (chatId: number,userId: number) {
     const chat = await db.select().from(chats).where(eq(chats.id, chatId));
     if(chat.length === 0) {
         throw new ChatNotFoundException("Chat with id " + chatId + " not found");
@@ -137,19 +169,23 @@ export class ChatService {
     if(chat[0].userId !== userId) {
       throw new Error("User not authorized to view messages for this chat id");
   }
+  const checkpoint = await checkpointer.get({
+    configurable: {
+      thread_id: chatId.toString(),
+    }
+   });
+    if(checkpoint) {
+      return extractMessagesFromCheckpoint(checkpoint,chatId.toString());
+    }
+    else {
+      console.warn("No checkpoint found for chat id " + chatId);
+    }
 
   
-    const lastTwoChats = db.$with("lastTwoChats").as(
-      db.select()
-        .from(messagesHistory)
-        .where(eq(messagesHistory.sessionId, chatId.toString()))
-        .orderBy(desc(messagesHistory.updatedAt))
-        .limit(2)
-    );
-    const results = await db.with(lastTwoChats).select().from(lastTwoChats).orderBy(asc(lastTwoChats.createdAt));
 
-    return results;
-    
+  
+ 
+
     
 
   
@@ -163,11 +199,30 @@ export class ChatService {
     if(chat[0].userId !== userId) {
         throw new Error("User not authorized to delete this chat");
     }
-    const messagesDeleted = await db.delete(messagesHistory).where(eq(messagesHistory.sessionId, id.toString())).returning();
-    if(messagesDeleted.length === 0) {
-        throw new Error("Messages not deleted");
+    
+    try {
+   
+      const threadId = id.toString();
+      
+      // Delete all checkpoint data from PostgreSQL tables using SQL
+      await db.execute(sql`DELETE FROM checkpoint_blobs WHERE thread_id = ${threadId}`);
+      await db.execute(sql`DELETE FROM checkpoint_writes WHERE thread_id = ${threadId}`);
+      await db.execute(sql`DELETE FROM checkpoints WHERE thread_id = ${threadId}`);
+      
+      // Finally delete the chat itself
+      await db.delete(chats).where(eq(chats.id, id));
+      
+      return { success: true, message: `Chat ${id} deleted successfully` };
+    } catch (error) {
+      console.error(`Error deleting chat ${id}:`, error);
+      if (error instanceof Error) {
+        throw new Error(`Failed to delete chat: ${error.message}`);
+      } else {
+        throw new Error(`Failed to delete chat: An unknown error occurred`);
+      }
     }
-    return await db.delete(chats).where(eq(chats.id, id)).returning();
+     
+ 
   }
   
    
@@ -177,3 +232,49 @@ export class ChatService {
 
 
 export const chatService = new ChatService();
+
+function extractMessagesFromCheckpoint(checkpoint: Checkpoint<string, string>, sessionId?: string): { id: string; chatId: string; isAI: boolean; content: string }[] {
+  try {
+    if (!checkpoint?.channel_values?.messages) {
+      console.warn("No messages found in checkpoint");
+      return [];
+    }
+    
+    //  Filter by message type first
+    const messagesArray = filterMessages(checkpoint.channel_values.messages, {
+      includeTypes: [HumanMessage, AIMessage, AIMessageChunk],
+    });
+    
+    //  Then filter out messages without content
+    const messagesWithContent = messagesArray.filter((message: BaseMessage) => {
+      return message.content !== undefined && 
+             !(typeof message.content === "string" && message.content.trim() === "");
+    });
+    
+ 
+    let messages: BaseMessage[] = [];
+
+    messages = messagesWithContent;
+ 
+  
+    if (messages.length === 0) {
+      console.warn("No messages with content found");
+      return [];
+    }
+    
+    // Convert to the required format
+    const extractedMessages = messages.map((message: BaseMessage) => {
+      return {
+        id: message.id ?? "",
+        chatId: sessionId ?? "",
+        isAI: isAIMessage(message),
+        content: typeof message.content === "string" ? message.content : JSON.stringify(message.content),
+      };
+    });
+    
+    return extractedMessages;
+  } catch (error) {
+    console.error("Error extracting messages from checkpoint:", error);
+    return [];
+  }
+}

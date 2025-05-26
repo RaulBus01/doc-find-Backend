@@ -18,60 +18,7 @@ const logger = new Logger("AIService");
 
 
 import { graph } from "../langgraph/graph.ts";
-import { HumanMessage } from "@langchain/core/messages";
-
-
-
-const modelMap = (model: AIModel) => {
-  let chatModel;
-  switch (model) {
-    case AIModel.MISTRAL_SMALL:
-      chatModel = new ChatMistralAI({
-        model: AIModel.MISTRAL_SMALL,
-        temperature: 0.7,
-        safePrompt: true,
-        streaming: true,
-      });
-      break;
-    case AIModel.MISTRAL_LARGE:
-      chatModel =  new ChatMistralAI({
-        model: AIModel.MISTRAL_LARGE,
-        temperature: 0.7,
-        safePrompt: true,
-        streaming: true,
-      });
-      break;
-    // case AIModel.GEMINI_FLASH_LITE:
-    //   return new ChatGoogleGenerativeAI({
-    //     apiKey: Deno.env.get("GOOGLE_API_KEY"),
-    //     model: "gemini-2.0-flash-lite",
-    //     temperature: 0.7,
-    //     streaming: true,
-    //     safetySettings: [
-    //       {
-    //         category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-    //         threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-    //       },
-    //       {
-    //         category:HarmCategory.HARM_CATEGORY_HARASSMENT,
-    //         threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-    //       }
-    //     ]
-    //   });
-   
-    default:
-      logger.warn("Model not found, using default Mistral Small model.");
-      chatModel = new ChatMistralAI({
-        model: AIModel.MISTRAL_SMALL,
-        temperature: 0.7,
-        safePrompt: true,
-        streaming: true,
-      });
-      break;
-      
-  }
-  return chatModel;
-}
+import { AIMessage, HumanMessage } from "@langchain/core/messages";
 
 
 
@@ -79,42 +26,62 @@ const modelMap = (model: AIModel) => {
 
 
 
-const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,contextData?: ContextUser, streamHandler?: (chunk: string) => void) => {
+
+
+
+
+const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,contextData?: ContextUser, streamHandler?: (chunk: string) => void,abortSignal?:AbortSignal) => {
   try {
 
-    const config = { configurable: { sessionId:chatId.toString() }, version: "v2" as const,streamMode:"messages" as const };
+    const config = { configurable: { thread_id:chatId.toString() }, version: "v2" as const,streamMode:"messages" as const,signal:abortSignal };
     const inputMessage = new HumanMessage({ content: message });
+
+ 
 
     const response = graph.streamEvents(
       {
         messages: [inputMessage],
         contextData: contextData,
       },
+      
       config
     );
 
- 
-    // for await (const chunk of response) {
-    //   if (typeof chunk === 'string') {
-    //     console.log("Chunk:", chunk);
-    //   }
-    // }
-    // Here, let's confirm that the AI remembers our name!
-    
-      
-
-    
-
+    let isStreaming = false;
 
     for await (const chunk of response) {
-      if (typeof chunk === 'string') {
-        if (streamHandler) {
-          streamHandler(chunk);
+      if (abortSignal?.aborted) {
+        logger.warn("Streaming aborted by client");
+        break;
+      }
+      if (typeof chunk === 'object') {
+        // Extract message content from different event types
+        if (chunk.event === 'on_chat_model_stream' && chunk.data?.chunk?.content) {
+          // Handle streaming chunks
+          if (streamHandler) {
+            streamHandler(chunk.data.chunk.content);
+          }
+          isStreaming = true;
+        } 
+        else if (chunk.event === 'on_chain_end' && !isStreaming) {
+          // If we haven't streamed yet, get content from the final message
+          if (chunk.data?.output?.messages) {
+            const messages = chunk.data.output.messages;
+
+            const aiMessage = messages.find((m: { constructor: { name: string | string[]; }; }) => m.constructor.name.includes('AIMessage'));
+            if (aiMessage && aiMessage.content && streamHandler) {
+              streamHandler(aiMessage.content);
+            }
+          }
         }
-      } 
-          logger.debug("Chunk structure:", JSON.stringify(chunk));
-        }
+      }
       
+
+      else if (typeof chunk === 'string' && streamHandler) {
+        streamHandler(chunk);
+      }
+    }
+  
     
 
     // const followUpPrompt = `Based on the conversation so far, suggest one relevant follow-up question the user might ask next.`;
@@ -148,22 +115,38 @@ const getAPIResponse = async (chatId: number, message: string,modelType:AIModel,
 
 
 
-const GOOGLE_API_KEY = Deno.env.get("GOOGLE_API_KEY");
-if (!GOOGLE_API_KEY) {
-  throw new Error("Missing GOOGLE_API_KEY in environment variables.");
-}
-const genAI = new GoogleGenerativeAI(GOOGLE_API_KEY)
-const geminiModel = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash-lite",
-})
-const generateTitleWithGemini = async (message: string) => {
-  if (!GOOGLE_API_KEY) {
-    throw new Error("Missing GOOGLE_API_KEY in environment variables.");
-  }
+
+
+const generateTitleWithGemini = async (prompt:string,message: string) => {
+  const modelPrompt = ChatPromptTemplate.fromMessages([
+    ["system", prompt],
+    new MessagesPlaceholder("messages"),
+  ]);
+  const model = new  ChatGoogleGenerativeAI({
+        apiKey: Deno.env.get("GOOGLE_API_KEY"),
+        model: "gemini-2.0-flash-lite",
+        temperature: 0.7,
+        safetySettings: [
+          {
+            category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+          },
+          {
+            category:HarmCategory.HARM_CATEGORY_HARASSMENT,
+            threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+          }
+        ]
+      });
   try {
-    const result = await geminiModel.generateContent(message);
-    const response = result.response;
-    const title = response.text().trim();
+    //@ts-ignore lang chain type error
+    const response = await modelPrompt.pipe(model).invoke(
+      {
+        messages: [
+          new HumanMessage({ content: message }),
+        ],
+      }
+    );
+    const title = response.content;
     return title;
   } catch (error) {
     logger.error("Error in generateTitleWithGemini:", new Error(String(error)), { message });

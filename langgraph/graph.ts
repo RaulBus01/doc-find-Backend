@@ -1,142 +1,279 @@
 import { ToolNode } from "npm:@langchain/langgraph/prebuilt";
 import {
-Annotation,
+  Annotation,
   END,
   MessagesAnnotation,
   START,
   StateGraph,
 } from "@langchain/langgraph";
-import { AIMessage, BaseMessage } from "@langchain/core/messages";
+import { AIMessage,HumanMessage } from "@langchain/core/messages";
 import { isAIMessage } from "@langchain/core/messages";
 import { ChatMistralAI } from "@langchain/mistralai";
-import { DuckDuckGoSearch } from "@langchain/community/tools/duckduckgo_search";
-import  pg  from "pg";
-import { RunnableWithMessageHistory } from "@langchain/core/runnables";
-import { PostgresChatMessageHistory } from "@langchain/community/stores/message/postgres";
+import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { ChatPromptTemplate, MessagesPlaceholder } from "@langchain/core/prompts";
+import { TavilySearch } from "@langchain/tavily";
 import { ContextUser } from "../types/ContextType.ts";
-const llm = new ChatMistralAI({
+import { checkpointer } from "../database/database.ts";
+import { googlePlaceTool } from "./GooglePlaces.ts";
+
+
+const diagnosisModel = new ChatMistralAI({
   model: "mistral-small-latest",
   temperature: 0,
 });
 
-const webSearchTool = new DuckDuckGoSearch();
-const tools = [webSearchTool];
+const researchModel = new ChatGoogleGenerativeAI({
+  model: "gemini-2.0-flash",
+  temperature: 0.3,
+});
 
-//@ts-ignore tools
+const locationModel = new ChatMistralAI({
+  model: "mistral-small-latest",
+  temperature: 0,
+});
+
+// Tools
+const webSearchTool = new TavilySearch({
+  tavilyApiKey: Deno.env.get("TAVILY_API_KEY"),
+});
+
+const tools = [googlePlaceTool, webSearchTool];
+//@ts-ignore type not found
 const toolNode = new ToolNode(tools);
 
-const poolConfig = {
-  host: Deno.env.get("DB_HOST"),
-  port: 5432,
-  user: Deno.env.get("DB_USER"),
-  password: Deno.env.get("DB_PASSWORD"),
-  database: Deno.env.get("DB_NAME"),
-  ssl: true
-};
-
-const pool = new pg.Pool(poolConfig);
 
 const GraphAnnotation = Annotation.Root({
   ...MessagesAnnotation.spec,
   contextData: Annotation<ContextUser>({
     reducer: (_, action) => action,
     default: () => ({} as ContextUser),
-  })
-})
-const modelPrompt = ChatPromptTemplate.fromMessages([
-  ["system", "{context_string}"],
-  new MessagesPlaceholder("chat_history"),
-  ["human", "{input}"],
+  }),
+  currentAgent: Annotation<string>({
+    reducer: (_, action) => action,
+    default: () => "router",
+  }),
+  taskType: Annotation<string>({
+    reducer: (_, action) => action,
+    default: () => "",
+  }),
+  requiresLocation: Annotation<boolean>({
+    reducer: (_, action) => action,
+    default: () => false,
+  }),
+});
+
+// Agent-specific prompts
+const routerPrompt = ChatPromptTemplate.fromMessages([
+  ["system", `You are a router agent that determines what type of medical task needs to be handled.
+  
+  Analyze the user's message and determine the primary task:
+  1. "diagnosis" - For symptom analysis, medical diagnosis, or health condition questions
+  2. "research" - For complex medical research, drug interactions, treatment comparisons
+  3. "location" - For finding nearby medical facilities, pharmacies, hospitals
+  4. "general" - For general health advice or simple questions
+  
+  Respond with ONLY the task type as a single word.`],
+  new MessagesPlaceholder("messages"),
 ]);
 
-const baseContext = `You are an AI medical assistant. Your task is to analyze the given text and provide a possible diagnosis based on the symptoms and information provided.
-Consider the entities marked in the text (if any) and their relevance to potential medical conditions`;
-const agentContext = `You can also use the search tool to find relevant information and provide a more accurate diagnosis.`;
+const diagnosisPrompt = ChatPromptTemplate.fromMessages([
+  ["system", `You are a specialized medical diagnosis agent. Your expertise is in:
+  - Analyzing symptoms and providing possible diagnoses
+  - Interpreting medical conditions based on patient information
+  - Providing immediate medical guidance and recommendations
+  
+  Patient context: {context_string}
+  
+  Focus on accurate diagnosis based on symptoms. If you need additional research about rare conditions or drug interactions, indicate that research is needed.`],
+  new MessagesPlaceholder("messages"),
+]);
 
-export const buildSystemMessage = (contextData?: ContextUser | string) => {
-  if (!contextData) {
-    return baseContext;
-  }
-  const contextString = Object.entries(contextData)
+const researchPrompt = ChatPromptTemplate.fromMessages([
+  ["system", `You are a medical research agent specialized in:
+  - In-depth medical research using web search
+  - Drug interactions and contraindications  
+  - Latest treatment protocols and medical studies
+  - Complex medical condition analysis
+  
+  Patient context: {context_string}
+  
+  Use web search tool when you need current medical information, research studies, or drug interaction data.`],
+  new MessagesPlaceholder("messages"),
+]);
+
+const locationPrompt = ChatPromptTemplate.fromMessages([
+  ["system", `You are a location-based medical services agent. Your role is to:
+  - Find nearby medical facilities (hospitals, clinics, urgent care)
+  - Locate pharmacies and specialized medical services
+  - Provide location-based medical recommendations
+  
+  Patient context: {context_string}
+  
+  Always use the Google Places tool to find relevant medical facilities. If no location is provided, ask for permission to access location.`],
+  new MessagesPlaceholder("messages"),
+]);
+
+// Helper function to build context
+const buildSystemMessage = (contextData?: ContextUser | string) => {
+  if (!contextData) return "";
+  return Object.entries(contextData)
     .map(([key, value]) => `${key}: ${value}`)
     .join(", ");
-  return `${baseContext} with the following context about patient: ${contextString} + ${agentContext}`;
-}
+};
 
-
-
-
-
-const callModel = async (state: typeof GraphAnnotation.State) => {
+// Router agent - determines which specialist agent to use
+const routerAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
   const { messages } = state;
-  const {contextData} = state;
-  //@ts-ignore llmType
-  const llmPrompt = modelPrompt.pipe(llm);
-  const chainWithHistory = new RunnableWithMessageHistory({
-    runnable: llmPrompt,
-    inputMessagesKey: "input",
-    historyMessagesKey: "chat_history",
+  const lastMessage = messages[messages.length - 1];
+  
+  if (lastMessage instanceof HumanMessage) {
+    //@ts-ignore type not found
+    const response = await routerPrompt.pipe(diagnosisModel).invoke(
+      { messages: [lastMessage] },
+      { signal: options?.signal }
+    );
+    
+    const taskType = response.content.toString().toLowerCase().trim();
+    
+    return {
+      messages: [...messages],
+      currentAgent: taskType,
+      taskType: taskType,
+      requiresLocation: taskType === "location"
+    };
+  }
+  
+  return { messages: [...messages] };
+};
 
-    getMessageHistory: (sessionId: string) => {
-      const chatHistory = new PostgresChatMessageHistory({
-        sessionId,
-        pool: pool,
-        tableName: "messages_history",
-        
-        
-      });
-      return chatHistory;
-    },
-  });
-
-  const response = await chainWithHistory.invoke(
+// Diagnosis agent
+const diagnosisAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
+  const { messages, contextData } = state;
+  
+  const llmWithTools = diagnosisModel.bindTools([webSearchTool]);
+  //@ts-ignore type not found
+  const response = await diagnosisPrompt.pipe(llmWithTools).invoke(
     {
-      input: messages[messages.length - 1].content,
+      messages: messages,
       context_string: buildSystemMessage(contextData),
     },
-    {
-      configurable: {
-        sessionId: "141"
-      },
-    }
+    { signal: options?.signal }
   );
-  return { messages: [...messages, response] };
+  
+  return { messages: [response] };
 };
 
+// Research agent
+const researchAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
+  const { messages, contextData } = state;
+  
+  const llmWithTools = researchModel.bindTools([webSearchTool]);
+  //@ts-ignore type not found
+  const response = await researchPrompt.pipe(llmWithTools).invoke(
+    {
+      messages: messages,
+      context_string: buildSystemMessage(contextData),
+    },
+    { signal: options?.signal }
+  );
+  
+  return { messages: [response] };
+};
 
+// Location agent
+const locationAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
+  const { messages, contextData } = state;
+  
+  const llmWithTools = locationModel.bindTools([googlePlaceTool]);
+  //@ts-ignore type not found
+  const response = await locationPrompt.pipe(llmWithTools).invoke(
+    {
+      messages: messages,
+      context_string: buildSystemMessage(contextData),
+    },
+    { signal: options?.signal }
+  );
+  
+  return { messages: [response] };
+};
 
-const shouldContinue = (state: typeof MessagesAnnotation.State) => {
-  const { messages } = state;
-  // if(messages.length > 10){
-  //   return 'summarize_chatHistory'
-  // }
+// General agent (fallback)
+const generalAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
+  const { messages, contextData } = state;
+  
+  const generalPrompt = ChatPromptTemplate.fromMessages([
+    ["system", `You are a general medical assistant providing basic health information and guidance.
+    Patient context: {context_string}`],
+    new MessagesPlaceholder("messages"),
+  ]);
+  //@ts-ignore type not found
+  const response = await generalPrompt.pipe(diagnosisModel).invoke(
+    {
+      messages: messages,
+      context_string: buildSystemMessage(contextData),
+    },
+    { signal: options?.signal }
+  );
+  
+  return { messages: [response] };
+};
 
+// Routing logic
+const shouldContinue = (state: typeof GraphAnnotation.State) => {
+  const { messages} = state;
   const lastMessage = messages[messages.length - 1];
-  if (
-    !isAIMessage(lastMessage) ||
-    !(lastMessage as AIMessage).tool_calls?.length
-  ) {
-    // LLM did not call any tools, or it's not an AI message, so we should end.
-    return END;
+  
+  if (isAIMessage(lastMessage) && (lastMessage as AIMessage).tool_calls?.length) {
+    return "tools";
   }
-  return "tools";
+  
+  return END;
 };
 
+const routeToAgent = (state: typeof GraphAnnotation.State) => {
+  const { currentAgent } = state;
+  
+  switch (currentAgent) {
+    case "diagnosis":
+      return "diagnosis_agent";
+    case "research":
+      return "research_agent";
+    case "location":
+      return "location_agent";
+    case "general":
+    default:
+      return "general_agent";
+  }
+};
 
-
-
-
-
+// Build the workflow
 const workflow = new StateGraph(GraphAnnotation)
-  .addNode("agent", callModel)
-  // .addNode("summarize_chatHistory",summarizeHistory)
-  .addEdge(START, "agent")
+
+  .addNode("router", routerAgent)
+  .addNode("diagnosis_agent", diagnosisAgent)
+  .addNode("research_agent", researchAgent)
+  .addNode("location_agent", locationAgent)
+  .addNode("general_agent", generalAgent)
   .addNode("tools", toolNode)
-  .addEdge("tools", "agent")
-  .addConditionalEdges("agent", shouldContinue, ["tools", END]);
+  
+ 
+  .addEdge(START, "router")
+  .addConditionalEdges("router", routeToAgent, [
+    "diagnosis_agent",
+    "research_agent", 
+    "location_agent",
+    "general_agent"
+  ])
+  
+  
+  .addConditionalEdges("diagnosis_agent", shouldContinue, ["tools", END])
+  .addConditionalEdges("research_agent", shouldContinue, ["tools", END])
+  .addConditionalEdges("location_agent", shouldContinue, ["tools", END])
+  .addConditionalEdges("general_agent", shouldContinue, ["tools", END])
+  
+  // Tools always return to the router to potentially switch agents
+  .addEdge("tools", "router");
 
 export const graph = workflow.compile({
-  // The LangGraph Studio/Cloud API will automatically add a checkpointer
-  // only uncomment if running locally
+  checkpointer: checkpointer,
 });
