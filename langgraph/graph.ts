@@ -6,7 +6,7 @@ import {
   START,
   StateGraph,
 } from "@langchain/langgraph";
-import { AIMessage,HumanMessage } from "@langchain/core/messages";
+import { AIMessage,BaseMessage,HumanMessage, trimMessages } from "@langchain/core/messages";
 import { isAIMessage } from "@langchain/core/messages";
 import { ChatMistralAI } from "@langchain/mistralai";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
@@ -20,24 +20,24 @@ import { ChatGroq } from "@langchain/groq";
 const diagnosisModel = new ChatMistralAI({
   model: "mistral-medium-latest",
   temperature: 0.0,
-
+  cache: true,
 });
 
-
-const routerModel = new ChatGoogleGenerativeAI({
+const routerModel =  new ChatGoogleGenerativeAI({
   model: "gemini-2.0-flash",
   temperature: 0.0,
 });
-const researchModel = new ChatMistralAI({
-  model: "mistral-medium-latest",
-  temperature: 0.0,
-
-});
-
-
-const locationModel = new ChatGoogleGenerativeAI({
-  model: "gemini-2.0-flash",
+const researchModel = new ChatGroq({
+  model: "deepseek-r1-distill-llama-70b",
   temperature: 0,
+});
+
+
+
+
+const locationModel = new ChatMistralAI({
+  model: "mistral-small-latest",
+  temperature: 0.0,
 });
 // Tools
 const webSearchTool = new TavilySearch({
@@ -75,7 +75,7 @@ const routerPrompt = ChatPromptTemplate.fromMessages([
   
   Analyze the user's message and determine the primary task:
   1. "diagnosis" - For symptom analysis, medical diagnosis, or health condition questions
-  2. "research" - For complex medical research, drug interactions, treatment comparisons
+  2. "research" - For in-depth medical research, drug interactions, treatment protocols, medical studies
   3. "location" - For finding nearby medical facilities, pharmacies, hospitals
   4. "general" - For general health advice or simple questions
   
@@ -116,7 +116,10 @@ const diagnosisPrompt = ChatPromptTemplate.fromMessages([
 const researchPrompt = ChatPromptTemplate.fromMessages([
   ["system", `You are a medical research agent specialized in:
   - In-depth medical research using web search
-  - Drug interactions and contraindications  
+  - Drug interactions and contraindications
+  - Latest medical studies and treatment protocols
+  - Analyzing complex medical conditions
+  -  
   - Latest treatment protocols and medical studies
   - Complex medical condition analysis
   
@@ -181,7 +184,13 @@ const locationPrompt = ChatPromptTemplate.fromMessages([
   ⭐ Rating: 4.5/5 (13 reviews)
   🕒 Status: Currently Closed
   🏷️ Type: Pharmacy
+
   
+
+
+
+  If the facility dosen't has the types("hospital", "clinic", "pharmacy","store"), do not include it in the response.
+
   If no facilities are found, suggest alternative search terms or nearby areas.`],
   new MessagesPlaceholder("messages"),
 ]);
@@ -197,7 +206,7 @@ const buildSystemMessage = (contextData?: ContextUser | string) => {
 const routerAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
   const { messages } = state;
   const lastMessage = messages[messages.length - 1];
-  
+
   if (lastMessage instanceof HumanMessage) {
     //@ts-ignore type not found
     const response = await routerPrompt.pipe(routerModel).invoke(
