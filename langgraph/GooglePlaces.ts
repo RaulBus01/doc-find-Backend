@@ -1,10 +1,12 @@
 import { tool } from "@langchain/core/tools";
 import { GooglePlaceResponse, GooglePlaceResult, FormattedPlaceResult } from "../types/GoogleType.ts";
+import { z } from "@hono/zod-openapi";
 
 const googlePlaceTool = tool(
   async (input): Promise<string> => {
     try {
-      const { query, location, radius = 5 } = JSON.parse(input);
+      console.log("Google Places API input received:", input);
+      const { query, location, radius = "5", city } = input;
       console.log("Google Places API input:", { query, location, radius });
       
       // Check if location is provided
@@ -16,9 +18,11 @@ const googlePlaceTool = tool(
       }
       
       console.log(query, location, radius);
+      const formattedQuery = city ? `${query} in ${city}` : query;
       const params = {
-          "query": `${query} near ${location}`,
-          "radius": Math.round(parseFloat(radius) * 1000).toString(), // API uses meters
+          "query": formattedQuery,
+          "radius": Math.round(parseFloat(radius) * 1000).toString(),
+          "location": location,
           "key": Deno.env.get("GOOGLE_PLACES_API_KEY") || ""
       }
       const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?${new URLSearchParams(params)}`;
@@ -53,7 +57,7 @@ const googlePlaceTool = tool(
         business_status: place.business_status,
         types: place.types,
         opening_hours: place.opening_hours,
-        photos: place.photos?.slice(0, 1), // Just include first photo if available
+        photos: place.photos?.slice(0, 1), 
       }));
       
       return JSON.stringify(places);
@@ -70,8 +74,15 @@ const googlePlaceTool = tool(
   },
   {
     name: "google_places",
-    description: "Search for nearby places using Google Places API. Input should be a JSON string with 'query', 'location' (lat,lng), and optional 'radius' in km.",
-   responseFormat: "json",
+    description: "Search for nearby places using Google Places API. Input should be a JSON string with 'query', 'location' (lat,lng), 'city' (optional), and optional 'radius' in km.",
+   schema: z.object({
+      query: z.string().describe("Type of place to search for (e.g., 'doctor', 'hospital', 'pharmacy')"),
+      location: z.string().describe("Location coordinates in 'lat,lng' format"),
+      city: z.string().optional().describe("City name if available from context"),
+      radius: z.string().optional().default("5").describe("Search radius in kilometers (default is 5 km)"),
+    }),
+
+    
    verbose: true,
    
 

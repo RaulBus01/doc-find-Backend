@@ -15,23 +15,30 @@ import { TavilySearch } from "@langchain/tavily";
 import { ContextUser } from "../types/ContextType.ts";
 import { checkpointer } from "../database/database.ts";
 import { googlePlaceTool } from "./GooglePlaces.ts";
-
+import { ChatGroq } from "@langchain/groq";
 
 const diagnosisModel = new ChatMistralAI({
-  model: "mistral-small-latest",
-  temperature: 0,
+  model: "mistral-medium-latest",
+  temperature: 0.0,
+
 });
 
-const researchModel = new ChatGoogleGenerativeAI({
+
+const routerModel = new ChatGoogleGenerativeAI({
   model: "gemini-2.0-flash",
-  temperature: 0.3,
+  temperature: 0.0,
+});
+const researchModel = new ChatMistralAI({
+  model: "mistral-medium-latest",
+  temperature: 0.0,
+
 });
 
-const locationModel = new ChatMistralAI({
-  model: "mistral-small-latest",
+
+const locationModel = new ChatGoogleGenerativeAI({
+  model: "gemini-2.0-flash",
   temperature: 0,
 });
-
 // Tools
 const webSearchTool = new TavilySearch({
   tavilyApiKey: Deno.env.get("TAVILY_API_KEY"),
@@ -106,8 +113,16 @@ const locationPrompt = ChatPromptTemplate.fromMessages([
   - Find nearby medical facilities (hospitals, clinics, urgent care)
   - Locate pharmacies and specialized medical services
   - Provide location-based medical recommendations
-  
+
   Patient context: {context_string}
+  
+  When using the Google Places tool, format your input as JSON with:
+  - query: the type of medical facility (e.g., "doctor", "hospital", "pharmacy")
+  - location: coordinates as "lat,lng" optionally provided by the user when querying for nearby facilities if not provided try to find from context
+  - city: the city name if available from context
+  - radius: search radius in km (default 5)
+  
+  Example: {{"query": "doctor", "location": "46.1718,21.3129", "city": "Arad", "radius": "5"}}
   
   Always use the Google Places tool to find relevant medical facilities. If no location is provided, ask for permission to access location.`],
   new MessagesPlaceholder("messages"),
@@ -121,14 +136,14 @@ const buildSystemMessage = (contextData?: ContextUser | string) => {
     .join(", ");
 };
 
-// Router agent - determines which specialist agent to use
+// Router agent
 const routerAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
   const { messages } = state;
   const lastMessage = messages[messages.length - 1];
   
   if (lastMessage instanceof HumanMessage) {
     //@ts-ignore type not found
-    const response = await routerPrompt.pipe(diagnosisModel).invoke(
+    const response = await routerPrompt.pipe(routerModel).invoke(
       { messages: [lastMessage] },
       { signal: options?.signal }
     );
@@ -139,16 +154,21 @@ const routerAgent = async (state: typeof GraphAnnotation.State, options?: { sign
       messages: [...messages],
       currentAgent: taskType,
       taskType: taskType,
-      requiresLocation: taskType === "location"
+      requiresLocation: taskType,
     };
   }
   
   return { messages: [...messages] };
 };
 
-// Diagnosis agent
+
+// Updated Diagnosis agent with summarization
 const diagnosisAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
   const { messages, contextData } = state;
+
+
+  
+
   
   const llmWithTools = diagnosisModel.bindTools([webSearchTool]);
   //@ts-ignore type not found
@@ -160,12 +180,14 @@ const diagnosisAgent = async (state: typeof GraphAnnotation.State, options?: { s
     { signal: options?.signal }
   );
   
-  return { messages: [response] };
+  return { messages: [...messages, response] };
 };
 
-// Research agent
+// Updated Research agent with summarization
 const researchAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
   const { messages, contextData } = state;
+  
+
   
   const llmWithTools = researchModel.bindTools([webSearchTool]);
   //@ts-ignore type not found
@@ -177,29 +199,14 @@ const researchAgent = async (state: typeof GraphAnnotation.State, options?: { si
     { signal: options?.signal }
   );
   
-  return { messages: [response] };
+  return { messages: [...messages, response] };
 };
 
-// Location agent
-const locationAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
-  const { messages, contextData } = state;
-  
-  const llmWithTools = locationModel.bindTools([googlePlaceTool]);
-  //@ts-ignore type not found
-  const response = await locationPrompt.pipe(llmWithTools).invoke(
-    {
-      messages: messages,
-      context_string: buildSystemMessage(contextData),
-    },
-    { signal: options?.signal }
-  );
-  
-  return { messages: [response] };
-};
-
-// General agent (fallback)
+// Updated General agent with summarization
 const generalAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
   const { messages, contextData } = state;
+  
+
   
   const generalPrompt = ChatPromptTemplate.fromMessages([
     ["system", `You are a general medical assistant providing basic health information and guidance.
@@ -215,7 +222,26 @@ const generalAgent = async (state: typeof GraphAnnotation.State, options?: { sig
     { signal: options?.signal }
   );
   
-  return { messages: [response] };
+  return { messages: [...messages, response] };
+};
+
+// Location agent with summarization
+const locationAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
+  const { messages, contextData } = state;
+  
+
+  
+  const llmWithTools = locationModel.bindTools([googlePlaceTool]);
+  //@ts-ignore type not found
+  const response = await locationPrompt.pipe(llmWithTools).invoke(
+    {
+      messages: messages,
+      context_string: buildSystemMessage(contextData),
+    },
+    { signal: options?.signal }
+  );
+  
+  return { messages: [...messages, response] };
 };
 
 // Routing logic
@@ -246,9 +272,10 @@ const routeToAgent = (state: typeof GraphAnnotation.State) => {
   }
 };
 
-// Build the workflow
-const workflow = new StateGraph(GraphAnnotation)
 
+
+// Updated workflow
+const workflow = new StateGraph(GraphAnnotation)
   .addNode("router", routerAgent)
   .addNode("diagnosis_agent", diagnosisAgent)
   .addNode("research_agent", researchAgent)
@@ -256,7 +283,6 @@ const workflow = new StateGraph(GraphAnnotation)
   .addNode("general_agent", generalAgent)
   .addNode("tools", toolNode)
   
- 
   .addEdge(START, "router")
   .addConditionalEdges("router", routeToAgent, [
     "diagnosis_agent",
@@ -264,7 +290,6 @@ const workflow = new StateGraph(GraphAnnotation)
     "location_agent",
     "general_agent"
   ])
-  
   
   .addConditionalEdges("diagnosis_agent", shouldContinue, ["tools", END])
   .addConditionalEdges("research_agent", shouldContinue, ["tools", END])

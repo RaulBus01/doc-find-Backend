@@ -105,7 +105,7 @@ app.post(
           description: 'Chat',
           content: {
             "application/json": {
-              schema: resolver(selectChatSchema), // Assuming getChat returns a single chat object
+              schema: resolver(selectChatSchema), 
             }
           },
         },
