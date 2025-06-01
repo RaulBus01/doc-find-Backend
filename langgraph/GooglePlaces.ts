@@ -6,23 +6,18 @@ const googlePlaceTool = tool(
   async (input): Promise<string> => {
     try {
       console.log("Google Places API input received:", input);
-      const { query, location, radius = "5", city } = input;
+      const { query, radius = "5", city } = input;
       console.log("Google Places API input:", { query, location, radius });
       
       // Check if location is provided
-      if (!location) {
-        return JSON.stringify({
-          error: "LOCATION_MISSING",
-          message: "No location data provided. Please ask the user for their location."
-        });
-      }
+      
       
       console.log(query, location, radius);
       const formattedQuery = city ? `${query} in ${city}` : query;
       const params = {
           "query": formattedQuery,
           "radius": Math.round(parseFloat(radius) * 1000).toString(),
-          "location": location,
+          
           "key": Deno.env.get("GOOGLE_PLACES_API_KEY") || ""
       }
       const url = `https://maps.googleapis.com/maps/api/place/textsearch/json?${new URLSearchParams(params)}`;
@@ -77,7 +72,7 @@ const googlePlaceTool = tool(
     description: "Search for nearby places using Google Places API. Input should be a JSON string with 'query', 'location' (lat,lng), 'city' (optional), and optional 'radius' in km.",
    schema: z.object({
       query: z.string().describe("Type of place to search for (e.g., 'doctor', 'hospital', 'pharmacy')"),
-      location: z.string().describe("Location coordinates in 'lat,lng' format"),
+      location: z.string().optional().describe("Location in 'lat,lng' format (e.g., '37.7749,-122.4194')"),
       city: z.string().optional().describe("City name if available from context"),
       radius: z.string().optional().default("5").describe("Search radius in kilometers (default is 5 km)"),
     }),

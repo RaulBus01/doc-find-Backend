@@ -91,6 +91,24 @@ const diagnosisPrompt = ChatPromptTemplate.fromMessages([
   
   Patient context: {context_string}
   
+  RESPONSE FORMAT:
+  Structure your response as follows:
+  
+  **Symptom Analysis:**
+  - [Brief summary of reported symptoms]
+  
+  **Possible Conditions:**
+  1. **[Condition Name]** (Likelihood: High/Medium/Low)
+     - Description: [Brief explanation]
+     - Symptoms match: [Matching symptoms]
+     
+  **Recommendations:**
+  - 🚨 **Urgent**: [If immediate medical attention needed]
+  - 💊 **Treatment**: [General treatment suggestions]
+  - 👩‍⚕️ **Follow-up**: [When to see a doctor]
+  
+  **⚠️ Disclaimer**: This is not a substitute for professional medical advice.
+  
   Focus on accurate diagnosis based on symptoms. If you need additional research about rare conditions or drug interactions, indicate that research is needed.`],
   new MessagesPlaceholder("messages"),
 ]);
@@ -104,10 +122,29 @@ const researchPrompt = ChatPromptTemplate.fromMessages([
   
   Patient context: {context_string}
   
+  RESPONSE FORMAT:
+  Structure your research findings as:
+  
+  **Research Summary:**
+  [Brief overview of findings]
+  
+  **Key Findings:**
+  📊 **Study/Source 1**: [Finding with source]
+  📊 **Study/Source 2**: [Finding with source]
+  
+  **Drug Interactions** (if applicable):
+  ⚠️ **[Drug A] + [Drug B]**: [Interaction description]
+  
+  **Treatment Protocols:**
+  1. **First-line treatment**: [Details]
+  2. **Alternative options**: [Details]
+  
+  **Latest Research** (if found):
+  🔬 [Recent study findings]
+  
   Use web search tool when you need current medical information, research studies, or drug interaction data.`],
   new MessagesPlaceholder("messages"),
 ]);
-
 const locationPrompt = ChatPromptTemplate.fromMessages([
   ["system", `You are a location-based medical services agent. Your role is to:
   - Find nearby medical facilities (hospitals, clinics, urgent care)
@@ -118,16 +155,36 @@ const locationPrompt = ChatPromptTemplate.fromMessages([
   
   When using the Google Places tool, format your input as JSON with:
   - query: the type of medical facility (e.g., "doctor", "hospital", "pharmacy")
-  - location: coordinates as "lat,lng" optionally provided by the user when querying for nearby facilities if not provided try to find from context
+
   - city: the city name if available from context
   - radius: search radius in km (default 5)
   
-  Example: {{"query": "doctor", "location": "46.1718,21.3129", "city": "Arad", "radius": "5"}}
+  Example: {{"query": "doctor",  "city": "Arad", "radius": "5"}}
   
-  Always use the Google Places tool to find relevant medical facilities. If no location is provided, ask for permission to access location.`],
+  Always use the Google Places tool to find relevant medical facilities.
+  
+  RESPONSE FORMAT:
+  When presenting results, format your response as follows:
+  
+  **Medical Facilities Found:**
+  
+  For each facility, include:
+  🏥 **[Facility Name]**
+  📍 Address: [Full address]
+  ⭐ Rating: [Rating/5] ([Number] reviews) or "No rating available"
+  🕒 Status: Currently [Open/Closed]
+  🏷️ Type: [Facility type]
+  
+  Example:
+  🏥 **Exquisit S.R.L.**
+  📍 Address: Str. 6 Martie, 85, Com. Ghioroc, Arad, Ghioroc 317135, Romania
+  ⭐ Rating: 4.5/5 (13 reviews)
+  🕒 Status: Currently Closed
+  🏷️ Type: Pharmacy
+  
+  If no facilities are found, suggest alternative search terms or nearby areas.`],
   new MessagesPlaceholder("messages"),
 ]);
-
 // Helper function to build context
 const buildSystemMessage = (contextData?: ContextUser | string) => {
   if (!contextData) return "";
@@ -154,7 +211,7 @@ const routerAgent = async (state: typeof GraphAnnotation.State, options?: { sign
       messages: [...messages],
       currentAgent: taskType,
       taskType: taskType,
-      requiresLocation: taskType,
+      requiresLocation: taskType === "location"
     };
   }
   
@@ -291,6 +348,7 @@ const workflow = new StateGraph(GraphAnnotation)
     "general_agent"
   ])
   
+
   .addConditionalEdges("diagnosis_agent", shouldContinue, ["tools", END])
   .addConditionalEdges("research_agent", shouldContinue, ["tools", END])
   .addConditionalEdges("location_agent", shouldContinue, ["tools", END])
