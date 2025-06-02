@@ -7,7 +7,7 @@ import { Scalar } from 'npm:@scalar/hono-api-reference'
 import { cors } from 'npm:hono/cors'
 
 const app = new Hono();
-// app.use(cors());
+app.use(cors());
 app.get(
   '/openapi',
   openAPISpecs(app, {

@@ -57,10 +57,10 @@ export const createChat = async (c: Context) => {
             title: "New Chat", // Default title that will be replaced
         };
         
-        // The createChatWithMessage now returns { chat, messages }
+
         const result = await chatService.createChatWithMessage(insertChat, message);
         
-        return c.json(result, 201); // Return the chat and messages
+        return c.json(result, 201); 
     } catch (error) {
         if (error instanceof ChatNotFoundException) {
             return c.json({ message: error.message }, 404);
@@ -88,20 +88,7 @@ export const deleteChat = async (c:Context) => {
     }
 }
 
-// export const addChatMessage = async (c:Context) => {
-//     try {
-//         const { id } = c.req.param();
-//         const user = c.get("user");
-//         const { message,isAI } = await c.req.json();
-//         const messageData = await chatService.addMessage(parseInt(id), user.id, message,isAI);
-//         return c.json(messageData, 200);
-//     } catch (error) {
-//         if (error instanceof ChatNotFoundException) {
-//             return c.json({ message: error.message }, 404);
-//         }
-//         throw error;
-//     }
-// }
+
 
 export const getChatMessages = async (c:Context) => {
     try{

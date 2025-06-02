@@ -28,8 +28,7 @@ export const verifyUserPermissions = createMiddleware(async (c: Context, next: (
   if (!jwks?.keys || jwks.keys.length === 0) {
     return c.json({ error: "No JWKS keys found" }, HttpStatusCode.INTERNAL_SERVER_ERROR);
   }
-  // In production, you may want to select the correct key based on token header 'kid'.
-  // For simplicity, we take the first key.
+
   const key = jwks.keys[0];
   const parsedKey = await importJWK(key, "RS256");
 
