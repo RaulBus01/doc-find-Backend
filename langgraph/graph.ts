@@ -209,8 +209,26 @@ const routerAgent = async (state: typeof GraphAnnotation.State, options?: { sign
 
   if (lastMessage instanceof HumanMessage) {
     //@ts-ignore type not found
+    const trimmedMessages = await trimMessages(messages,{
+      maxTokens: 1000,
+      strategy:"last",
+      startOn:"human",
+      endOn:"ai",
+      tokenCounter: routerModel.getNumTokens.bind(routerModel),
+    })
+     
+      const conversationSummary = trimmedMessages
+      .filter(msg => msg instanceof HumanMessage || msg instanceof AIMessage)
+      .map(msg => msg.content)
+      .join("\n");
+    
+        const contextualMessage = new HumanMessage({
+      content: `Previous conversation context: ${conversationSummary}\n\nCurrent user message: ${lastMessage.content}\n\nDetermine the task type based on the current message, using the context only if the current message references previous topics.`
+    });
+
+    //@ts-ignore type not found
     const response = await routerPrompt.pipe(routerModel).invoke(
-      { messages: [lastMessage] },
+      { messages: [contextualMessage] },
       { signal: options?.signal }
     );
     
@@ -220,7 +238,7 @@ const routerAgent = async (state: typeof GraphAnnotation.State, options?: { sign
       messages: [...messages],
       currentAgent: taskType,
       taskType: taskType,
-      requiresLocation: taskType === "location"
+      requiresLocation: taskType,
     };
   }
   

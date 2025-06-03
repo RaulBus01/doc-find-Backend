@@ -5,14 +5,8 @@ import { z } from "@hono/zod-openapi";
 const googlePlaceTool = tool(
   async (input): Promise<string> => {
     try {
-      console.log("Google Places API input received:", input);
+
       const { query, radius = "5", city } = input;
-      console.log("Google Places API input:", { query, location, radius });
-      
-      // Check if location is provided
-      
-      
-      console.log(query, location, radius);
       const formattedQuery = city ? `${query} in ${city}` : query;
       const params = {
           "query": formattedQuery,
@@ -33,7 +27,7 @@ const googlePlaceTool = tool(
       }
       
       const data = await response.json() as GooglePlaceResponse;
-      console.log("Google Places API response:", data);
+
       
       if (data.status !== "OK") {
         if (data.status === "ZERO_RESULTS") {
