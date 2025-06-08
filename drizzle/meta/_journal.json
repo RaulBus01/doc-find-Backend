@@ -15,6 +15,34 @@
       "when": 1739778119463,
       "tag": "0001_hard_magus",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1749229016862,
+      "tag": "0002_elite_stephen_strange",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1749229220108,
+      "tag": "0003_melted_sabra",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1749229773384,
+      "tag": "0004_thankful_kitty_pryde",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1749229873995,
+      "tag": "0005_cute_ser_duncan",
+      "breakpoints": true
     }
   ]
 }

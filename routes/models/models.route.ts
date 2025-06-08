@@ -3,7 +3,7 @@ import { describeRoute } from "hono-openapi";
 import { z } from "npm:@hono/zod-openapi";
 import { getAPIResponse} from "../../services/ai-service.ts";
 import { verifyUserPermissions } from "../../middlewares/Auth.middleware.ts";
-import { attachUser } from "../../middlewares/User.middleware.ts";
+
 import { Logger } from "../../utils/logger.ts";
 import { validateStreamAndSaveRequest,StreamAndSaveSchema } from "../../middlewares/Model.middleware.ts";
 import { resolver, validator as zValidator } from "hono-openapi/zod";
@@ -49,7 +49,6 @@ app.post(
     }
   }),
   verifyUserPermissions,
-  attachUser,
   validateStreamAndSaveRequest,
   (c) => {
     const { message, chatId, context,userId } = c.req.valid('json');
