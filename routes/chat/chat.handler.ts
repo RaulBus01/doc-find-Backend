@@ -72,7 +72,7 @@ export const getChatLastMessages = async (c:Context) => {
 }
 export const deleteChat = async (c:Context) => {
     try {
-        console.log(c.req.param());
+
         const { id } = c.req.param();
 
         const userId = c.get("userId");
