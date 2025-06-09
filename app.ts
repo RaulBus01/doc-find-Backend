@@ -1,6 +1,5 @@
 import { Hono } from "npm:hono"
 import chat from "./routes/chat/chat.route.ts";
-import user from "./routes/user/user.route.ts";
 import models from "./routes/models/models.route.ts";
 import { openAPISpecs } from 'hono-openapi'
 import { Scalar } from 'npm:@scalar/hono-api-reference'
@@ -38,7 +37,6 @@ app.get(
 
 const routes = app
     .route("/chat",chat)
-    .route("/user",user)
     .route("/completion", models)
 
 export type AppType = typeof routes;

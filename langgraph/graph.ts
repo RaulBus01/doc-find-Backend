@@ -153,11 +153,15 @@ const locationPrompt = ChatPromptTemplate.fromMessages([
   - Find nearby medical facilities (hospitals, clinics, urgent care)
   - Locate pharmacies and specialized medical services
   - Provide location-based medical recommendations
+  - Any location-based medical queries
+  - Assist with finding medical facilities based on user context
+
+  
 
   Patient context: {context_string}
   
   When using the Google Places tool, format your input as JSON with:
-  - query: the type of medical facility (e.g., "doctor", "hospital", "pharmacy")
+  - query: the type of medical facility (e.g., "doctor", "hospital", "pharmacy","clinic","cardiologist","dentist, any title that is related to medical facilities)
 
   - city: the city name if available from context
   - radius: search radius in km (default 5)

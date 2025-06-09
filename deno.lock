@@ -30,6 +30,7 @@
     "npm:@types/pg@^8.11.11": "8.11.14",
     "npm:axios@*": "1.9.0",
     "npm:axios@^1.9.0": "1.9.0",
+    "npm:drizzle-kit@*": "0.30.6_esbuild@0.19.12",
     "npm:drizzle-kit@~0.30.3": "0.30.6_esbuild@0.19.12",
     "npm:drizzle-orm@0.42": "0.42.0_@neondatabase+serverless@0.10.4_@types+pg@8.11.14_pg@8.15.6",
     "npm:drizzle-zod@~0.7.1": "0.7.1_drizzle-orm@0.42.0__@neondatabase+serverless@0.10.4__@types+pg@8.11.14__pg@8.15.6_zod@3.24.3_@neondatabase+serverless@0.10.4_@types+pg@8.11.14_pg@8.15.6",

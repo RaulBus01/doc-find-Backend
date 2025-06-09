@@ -18,7 +18,7 @@ export const StreamAndSaveSchema = z.object({
 
 
 export const validateStreamAndSaveRequest = validator('json', (value,c) => {
-    const user = c.get("user");
+    const user = c.get("userId");
     const parsed = StreamAndSaveSchema.safeParse(value);
     if (!parsed.success) {
       logger.error("Invalid request body", parsed.error, { userId: user.id });

@@ -8,4 +8,6 @@ export default defineConfig({
   dbCredentials: {
     url: Deno.env.get("DB_URL")!,
   },
+  tablesFilter:['chats',]
+
 });
