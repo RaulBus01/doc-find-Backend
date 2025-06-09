@@ -158,7 +158,7 @@ export class ChatService {
 
       // Finally delete the chat itself
       await db.delete(chats).where(eq(chats.id, id));
-      console.log(`Chat ${id} and its associated data deleted successfully`);
+  
 
       return { success: true, message: `Chat ${id} deleted successfully` };
     } catch (error) {
