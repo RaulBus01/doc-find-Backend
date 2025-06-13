@@ -34,7 +34,7 @@ export const verifyUserPermissions = createMiddleware(async (c: Context, next: (
 
   try {
     const { payload } = await jwtVerify(token, parsedKey, { issuer, audience });
-    console.log("JWT payload:", payload);
+
     // Check that the token has a subject (the user is logged in)
     if (!payload.sub) {
       return c.json({ error: "User not logged in" }, HttpStatusCode.UNAUTHORIZED);
