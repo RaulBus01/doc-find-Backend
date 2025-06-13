@@ -4,8 +4,9 @@ import { chats, insertChatSchema } from "../../drizzle/schema.ts";
 import { z } from "npm:@hono/zod-openapi";
 import { ChatNotFoundException } from "../exceptions/ChatNotFoundException.ts";
 import { generateTitleWithGemini } from "../ai-service.ts";
-import { Checkpoint } from "@langchain/core";
+
 import { BaseMessage, isAIMessage, filterMessages, HumanMessage, AIMessage, AIMessageChunk } from "@langchain/core/messages";
+import { Checkpoint } from "@langchain/langgraph";
 
 const MESSAGE_LIMIT = 2;
 
@@ -189,7 +190,13 @@ function extractMessagesFromCheckpoint(checkpoint: Checkpoint<string, string>, s
     }
 
     //  Filter by message type first
-    const messagesArray = filterMessages(checkpoint.channel_values.messages, {
+    const messagesCheck = checkpoint.channel_values.messages;
+    if (!Array.isArray(messagesCheck)) {
+      console.warn("Messages is not an array");
+      return [];
+    }
+    
+    const messagesArray = filterMessages(messagesCheck, {
       includeTypes: [HumanMessage, AIMessage, AIMessageChunk],
     });
 

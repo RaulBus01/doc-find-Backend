@@ -1,6 +1,6 @@
 import "jsr:@std/dotenv/load";
 
-import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory} from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
 import { ContextUser } from "../types/ContextType.ts";
 
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
@@ -8,42 +8,26 @@ import {
   ChatPromptTemplate,
   MessagesPlaceholder,
 } from "@langchain/core/prompts";
-
-import { ChatMistralAI } from "@langchain/mistralai";
-import { AIModel } from "../types/types.ts";
-
 import { Logger } from "../utils/logger.ts";
-
 const logger = new Logger("AIService");
-
-
 import { graph } from "../langgraph/graph.ts";
-import { AIMessage, HumanMessage } from "@langchain/core/messages";
+import { HumanMessage } from "@langchain/core/messages";
 
 
-
-
-
-
-
-
-
-
-
-const getAPIResponse = async (chatId: number, message: string,contextData?: ContextUser, streamHandler?: (chunk: string) => void,abortSignal?:AbortSignal) => {
+const getAPIResponse = async (chatId: string, message: string, contextData?: ContextUser, streamHandler?: (chunk: string) => void, abortSignal?: AbortSignal) => {
   try {
 
-    const config = { configurable: { thread_id:chatId.toString() }, version: "v2" as const,streamMode:"messages" as const,signal:abortSignal };
+    const config = { configurable: { thread_id: chatId.toString() }, version: "v2" as const, streamMode: "messages" as const, signal: abortSignal };
     const inputMessage = new HumanMessage({ content: message });
 
- 
+
 
     const response = graph.streamEvents(
       {
         messages: [inputMessage],
         contextData: contextData,
       },
-      
+
       config
     );
 
@@ -62,7 +46,7 @@ const getAPIResponse = async (chatId: number, message: string,contextData?: Cont
             streamHandler(chunk.data.chunk.content);
           }
           isStreaming = true;
-        } 
+        }
         else if (chunk.event === 'on_chain_end' && !isStreaming) {
           // If we haven't streamed yet, get content from the final message
           if (chunk.data?.output?.messages) {
@@ -75,32 +59,12 @@ const getAPIResponse = async (chatId: number, message: string,contextData?: Cont
           }
         }
       }
-      
+
 
       else if (typeof chunk === 'string' && streamHandler) {
         streamHandler(chunk);
       }
     }
-  
-    
-
-    // const followUpPrompt = `Based on the conversation so far, suggest one relevant follow-up question the user might ask next.`;
-    // const followUpResponse = await chainWithHistory.invoke(
-    //   {
-    //     input: followUpPrompt,
-    //     context_string: buildSystemMessage(contextData),
-
-    //   },
-    //   {
-    //     configurable: {
-    //       sessionId: chatId.toString(),
-    //     },
-    //   }
-    // );
-
-    // console.log("Follow-up question:", followUpResponse.output);
-
-    
 
 
   } catch (error) {
@@ -110,33 +74,26 @@ const getAPIResponse = async (chatId: number, message: string,contextData?: Cont
   }
 }
 
-
-
-
-
-
-
-
-const generateTitleWithGemini = async (prompt:string,message: string) => {
+const generateTitleWithGemini = async (prompt: string, message: string) => {
   const modelPrompt = ChatPromptTemplate.fromMessages([
     ["system", prompt],
     new MessagesPlaceholder("messages"),
   ]);
-  const model = new  ChatGoogleGenerativeAI({
-        apiKey: Deno.env.get("GOOGLE_API_KEY"),
-        model: "gemini-2.0-flash-lite",
-        temperature: 0.7,
-        safetySettings: [
-          {
-            category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
-            threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-          },
-          {
-            category:HarmCategory.HARM_CATEGORY_HARASSMENT,
-            threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
-          }
-        ]
-      });
+  const model = new ChatGoogleGenerativeAI({
+    apiKey: Deno.env.get("GOOGLE_API_KEY"),
+    model: "gemini-2.0-flash-lite",
+    temperature: 0.7,
+    safetySettings: [
+      {
+        category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+        threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+      },
+      {
+        category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+        threshold: HarmBlockThreshold.BLOCK_LOW_AND_ABOVE,
+      }
+    ]
+  });
   try {
     //@ts-ignore lang chain type error
     const response = await modelPrompt.pipe(model).invoke(
@@ -154,4 +111,4 @@ const generateTitleWithGemini = async (prompt:string,message: string) => {
   }
 }
 
-export { getAPIResponse, generateTitleWithGemini  };
+export { getAPIResponse, generateTitleWithGemini };

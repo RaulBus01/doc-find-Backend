@@ -58,8 +58,12 @@ app.post(
         },
       },
     }),
+    zValidator("param",
+      z.object({
+        id: z.string()
+      })
+    ),
     verifyUserPermissions,
-
     getChatMessages
   )
   .delete(
@@ -87,8 +91,12 @@ app.post(
         },
       },
     }),
+    zValidator("param",
+      z.object({
+        id: z.string()
+      })
+    ),
     verifyUserPermissions,
-
     deleteChat
   )
   .post(
@@ -115,6 +123,11 @@ app.post(
         },
       },
     }),
+    zValidator("param",
+      z.object({
+        id: z.string()
+      })
+    ),
     verifyUserPermissions,
     generateChatTitle
   )

@@ -10,7 +10,7 @@ import { Logger } from "../utils/logger.ts";
 const logger = new Logger("ModelsMiddleware");
 export const StreamAndSaveSchema = z.object({
     message: z.string().min(1, "Message cannot be empty"),
-    chatId: z.number().int().positive("Chat ID must be a positive integer"), 
+    chatId: z.string().min(1, "Chat ID is required"),
     context: ContextUserSchema.optional(),
 });
 
@@ -18,15 +18,15 @@ export const StreamAndSaveSchema = z.object({
 
 
 export const validateStreamAndSaveRequest = validator('json', (value,c) => {
-    const user = c.get("userId");
+    const userId = c.get("userId");
     const parsed = StreamAndSaveSchema.safeParse(value);
     if (!parsed.success) {
-      logger.error("Invalid request body", parsed.error, { userId: user.id });
+      logger.error("Invalid request body", parsed.error, { userId: userId });
       return c.text( 'Invalid request body' , 400);
     }
     return {
       ...parsed.data,
-      userId: user.id 
+      userId: userId,
     }
   
 });
