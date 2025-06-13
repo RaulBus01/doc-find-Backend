@@ -16,8 +16,27 @@ app.get(
         version: '1.0.0',
         description: 'Greeting API',
       },
+      components: {
+        securitySchemes: {
+          BearerAuth: {
+            type: 'http',
+            scheme: 'bearer',
+            bearerFormat: "JWT",
+          },
+        },
+      },
+      security: [
+        {
+          BearerAuth: [],
+        },
+      ],
+      tags: [
+        { name: 'Chat', description: 'Chat related endpoints' },
+        { name: 'Models', description: 'Model related endpoints' },
+      ],
       servers: [
         { url: 'http://localhost:8080', description: 'Local Server' },
+        { url: 'https://docfind-backend.deno.dev/', description: 'Production Server' },
       ],
     },
   })

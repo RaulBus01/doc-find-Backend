@@ -50,26 +50,6 @@ export const getChatMessages = async (c:Context) => {
         throw error;
     }
   }
-export const getChatLastMessages = async (c:Context) => {
-    try{
-    const { id} = c.req.param();
-    const user = c.get("user");
-
-    const messages = await chatService.getChatLastMessages(parseInt(id), user.id);
-    if (messages && messages.length === 0) {
-        return c.json({ message: "No messages found for this chat." }, 404);
-    } else {
-        return c.json(messages, 200);
-    }
-    
-    }
-    catch (error) {
-        if (error instanceof ChatNotFoundException) {
-            return c.json({ message: error.message }, 404);
-        }
-        throw error;
-    }
-}
 export const deleteChat = async (c:Context) => {
     try {
 
