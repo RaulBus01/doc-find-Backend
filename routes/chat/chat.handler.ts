@@ -67,13 +67,7 @@ export const deleteChat = async (c:Context) => {
         throw error;
     }
 }
-
-
-
-
-
-    
-  export const generateChatTitle = async (c: Context) => {
+export const generateChatTitle = async (c: Context) => {
     try {
       const { id } = c.req.param();
       const userId = c.get("userId");
