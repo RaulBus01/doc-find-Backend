@@ -1,6 +1,6 @@
 import "jsr:@std/dotenv/load";
 
-import { GoogleGenerativeAI, HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
+import {  HarmBlockThreshold, HarmCategory } from "@google/generative-ai";
 import { ContextUser } from "../types/ContextType.ts";
 
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
@@ -40,6 +40,7 @@ const getAPIResponse = async (chatId: string, message: string, contextData?: Con
       }
       if (typeof chunk === 'object') {
         // Extract message content from different event types
+
         if (chunk.event === 'on_chat_model_stream' && chunk.data?.chunk?.content) {
           // Handle streaming chunks
           if (streamHandler) {

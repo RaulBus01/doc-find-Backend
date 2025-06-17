@@ -170,12 +170,8 @@ export class ChatService {
         throw new Error(`Failed to delete chat: An unknown error occurred`);
       }
     }
-
-
   }
-
-
-
+   
 }
 
 
