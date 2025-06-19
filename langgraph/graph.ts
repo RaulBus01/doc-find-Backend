@@ -28,11 +28,6 @@ const routerModel =  new ChatGoogleGenerativeAI({
   temperature: 0,
   cache: true,
 });
-// const researchModel = new ChatGroq({
-//   model: "deepseek-r1-distill-llama-70b",
-//   temperature: 0,
-//   cache: true,
-// });
 
 const researchModel = new ChatFireworks({
   model: "accounts/fireworks/models/llama4-maverick-instruct-basic",
@@ -268,14 +263,10 @@ const routerAgent = async (state: typeof GraphAnnotation.State, options?: { sign
 };
 
 
-// Updated Diagnosis agent with summarization
+
 const diagnosisAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
   const { messages, contextData } = state;
 
-
-  
-
-  
   const llmWithTools = diagnosisModel.bindTools([webSearchTool]);
   //@ts-ignore type not found
   const response = await diagnosisPrompt.pipe(llmWithTools).invoke(
@@ -289,7 +280,7 @@ const diagnosisAgent = async (state: typeof GraphAnnotation.State, options?: { s
   return { messages: [...messages, response] };
 };
 
-// Updated Research agent with summarization
+
 const researchAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
   const { messages, contextData } = state;
  
@@ -306,7 +297,7 @@ const researchAgent = async (state: typeof GraphAnnotation.State, options?: { si
   return { messages: [...messages, response] };
 };
 
-// Updated General agent with summarization
+
 const generalAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
   const { messages, contextData } = state;
   
@@ -329,7 +320,7 @@ const generalAgent = async (state: typeof GraphAnnotation.State, options?: { sig
   return { messages: [...messages, response] };
 };
 
-// Location agent with summarization
+
 const locationAgent = async (state: typeof GraphAnnotation.State, options?: { signal?: AbortSignal }) => {
   const { messages, contextData } = state;
   
@@ -348,7 +339,7 @@ const locationAgent = async (state: typeof GraphAnnotation.State, options?: { si
   return { messages: [...messages, response] };
 };
 
-// Routing logic
+
 const shouldContinue = (state: typeof GraphAnnotation.State) => {
   const { messages} = state;
   const lastMessage = messages[messages.length - 1];
@@ -378,7 +369,7 @@ const routeToAgent = (state: typeof GraphAnnotation.State) => {
 
 
 
-// Updated workflow
+
 const workflow = new StateGraph(GraphAnnotation)
   .addNode("router", routerAgent)
   .addNode("diagnosis_agent", diagnosisAgent)

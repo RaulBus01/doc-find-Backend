@@ -10,7 +10,7 @@ import { Logger } from "../utils/logger.ts";
 const logger = new Logger("ModelsMiddleware");
 export const StreamAndSaveSchema = z.object({
     message: z.string().min(1, "Message cannot be empty"),
-    chatId: z.string().min(1, "Chat ID is required"),
+    chatId: z.number().int().positive("Chat ID must be a positive integer"),
     context: ContextUserSchema.optional(),
 });
 

@@ -65,7 +65,7 @@ app.post(
         abortSignal?.addEventListener("abort", onAbort);
         try {
           // Stream AI response to client while accumulating it
-          await getAPIResponse(chatId,message,context, async (chunk: string) => {
+          await getAPIResponse(chatId,message,context, (chunk: string) => {
             if (chunk) {
               controller.enqueue(new TextEncoder().encode(chunk));
 

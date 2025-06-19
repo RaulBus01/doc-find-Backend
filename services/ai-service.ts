@@ -14,7 +14,7 @@ import { graph } from "../langgraph/graph.ts";
 import { HumanMessage } from "@langchain/core/messages";
 
 
-const getAPIResponse = async (chatId: string, message: string, contextData?: ContextUser, streamHandler?: (chunk: string) => void, abortSignal?: AbortSignal) => {
+const getAPIResponse = async (chatId: number, message: string, contextData?: ContextUser, streamHandler?: (chunk: string) => void, abortSignal?: AbortSignal) => {
   try {
 
     const config = { configurable: { thread_id: chatId.toString() }, version: "v2" as const, streamMode: "messages" as const, signal: abortSignal };
