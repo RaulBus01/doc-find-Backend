@@ -13,10 +13,7 @@ const MESSAGE_LIMIT = 2;
 
 
 export class ChatService {
-
-
-
-
+ 
   async createChatWithMessage(chat: z.infer<typeof insertChatSchema>) {
     const chatTransaction = await db.transaction(async (db) => {
 
@@ -54,7 +51,7 @@ export class ChatService {
     return updatedChat;
   }
   async generateAndUpdateTitle(chatId: number, userId: string) {
-    // Get the first few messages to generate a meaningful title
+  
     const checkpoint = await checkpointer.get({
       configurable: {
         thread_id: chatId.toString(),
@@ -65,11 +62,11 @@ export class ChatService {
     }
 
 
-    // Extract the conversation for context (limit to first few messages)
+
     const chatMessages = extractMessagesFromCheckpoint(checkpoint, chatId.toString(), MESSAGE_LIMIT);
     const chatContent = chatMessages.map((message) => message.content).join("\n");
 
-    // Generate title prompt
+   
     const titlePrompt = `Create a concise, descriptive title (maximum 5 words) for this conversation. If the conversation lacks a clear specific topic, generate the default title "General Discussion. Don't generate Markdown text !!!".
     Conversation:`;
     try {
@@ -77,7 +74,6 @@ export class ChatService {
 
       const title = await generateTitleWithGemini(titlePrompt, chatContent);
 
-      // Update the chat with the new title
       return await this.updateChatTitle(chatId, userId, title.toString());
     } catch (error) {
       console.error("Failed to generate title:", error);
