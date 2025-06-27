@@ -89,7 +89,7 @@ export class ChatService {
     if (chat[0].userId !== userId) {
       throw new Error("User not authorized to view messages for this chat id");
     }
-
+    
     const checkpoint = await checkpointer.get({
       configurable: {
         thread_id: id.toString(),
