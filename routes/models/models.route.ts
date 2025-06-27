@@ -84,6 +84,7 @@ app.post(
         } finally {
           abortSignal?.removeEventListener("abort", onAbort);
           controller.close();
+          logger.info("Streaming completed");
         }
       },
       cancel(reason) {
