@@ -52,7 +52,7 @@ This backend server provides RESTful API endpoints that handle:
 
 1. Clone the repo:  
    ```bash
-   git clone https://github.com/your-org/doc-find-backend.git
+   git clone https://github.com/RaulBus01/doc-find-Backend
    cd doc-find-backend
    ```
 2. Install deps & generate lockfile (if needed):
