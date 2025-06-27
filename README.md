@@ -1,93 +1,117 @@
-# React Native & Deno Backend Server
+# DocFind Backend Server
 
-This repository contains the backend server for our React Native app built with Expo. The backend is implemented using Deno 2.0 and connects to a PostgreSQL database. It features secure endpoints for uploading various types of data (text, PDF, images, audio), OAuth 2.0 based authentication, and integration with AI models.
+This repository contains the backend server for my React Native app built with Expo. The backend is implemented using Deno and connects to a PostgreSQL database hosted on Neon. It features secure JWT-based endpoints, AI-powered chat and completion services, and structured logging.
 
 ## Table of Contents
 
-- [Overview](#overview)
-- [Features](#features)
-- [Architecture](#architecture)
-- [Prerequisites](#prerequisites)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Running the Server](#running-the-server)
-- [Project Layout](#project-layout)
+- [Overview](#overview)  
+- [Features](#features)  
+- [Architecture](#architecture)  
+- [Prerequisites](#prerequisites)  
+- [Installation](#installation)  
+- [Configuration](#configuration)  
+- [Running the Server](#running-the-server)  
+- [Project Layout](#project-layout)  
 
 ## Overview
 
-This backend server provides secure RESTful API endpoints that handle:
-- **User Authentication:** via OAuth 2.0 and JWT token validation.
-- **File Uploads:** accepting text, PDF, images, and audio files.
-- **AI Model Integration:** processing user inputs with AI services and returning model responses.
-- **Data Management:** interfacing with PostgreSQL for persistent storage.
+This backend server provides RESTful API endpoints that handle:  
+- **User Authentication:** JWT validation via Auth0 middleware.  
+- **Chat Management:** Create, update, delete chats; stream AI responses.  
+- **AI Integration:** LangChain workflows for diagnosis, research, location, and general assistance.  
+- **Data Persistence:** Drizzle ORM with PostgreSQL, plus LangGraph checkpoints.  
+- **Structured Logging:** JSON logs with timestamps and levels.
 
 ## Features
 
-- **Secure OAuth 2.0 Authentication:** Uses middleware to protect endpoints.
-- **Robust File Handling:** Supports multiple file formats with validation and secure storage.
-- **AI Integration:** Abstracted service layer for communicating with AI models.
-- **PostgreSQL Integration:** For secure and scalable data storage.
-- **Structured Logging & Error Handling:** Helps in monitoring and debugging.
-- **Environment-based Configuration:** Uses environment variables for secrets and configuration.
+- Secure JWT authentication middleware ([`verifyUserPermissions`](middlewares/Auth.middleware.ts))  
+- Chat CRUD endpoints (`routes/chat/chat.route.ts`)  
+- Stream-and-save AI completion endpoint (`routes/models/models.route.ts`)  
+- LangChain graph workflow with tools, prompts, and state checkpointing (`langgraph/graph.ts`)  
+- Drizzle ORM schema and migrations in `drizzle/`  
+- Validators using Zod schemas (`types/ContextType.ts`, `middlewares/Model.middleware.ts`)  
+- Unit tests for core utilities (e.g., [`utils/logger.ts`](utils/logger.ts))
 
 ## Architecture
 
-- **Deno 2.0:** Main backend runtime using TypeScript.
-- **Oak Framework:** HTTP server framework for routing and middleware support.
-- **PostgreSQL:** Primary database for storing user and application data.
-- **OAuth 2.0:** For secure authentication.
-- **File Storage:** Configured for local development with the option to use cloud storage for production.
-- **AI Model Service:** Separate module for handling AI-related requests.
+- **Runtime:** Deno  
+- **Framework:** Hono  
+- **ORM:** Drizzle ORM + Zod  
+- **Checkpointing:** LangGraph Postgres saver  
+- **AI Models:** Mistral, Gemini, Fireworks via LangChain  
+- **Tools:** Google Places, TavilySearch  
+- **Logging:** Console JSON output with `LogLevel`
 
 ## Prerequisites
 
-Before running the project, ensure you have the following installed:
-
-- [Deno](https://deno.land/#installation) (version 2.0 or above)
-- [PostgreSQL](https://www.postgresql.org/download/)
-- Git
+- [Deno](https://deno.land/#installation) (v2.2.3+)  
+- [PostgreSQL](https://www.postgresql.org/download/)  
+- Auth0 account for JWT issuer/audience  
 
 ## Installation
 
-1. **Clone the Repository:**
-
+1. Clone the repo:  
    ```bash
-   git clone https://github.com/yourusername/your-repo.git
-   cd your-repo
+   git clone https://github.com/your-org/doc-find-backend.git
+   cd doc-find-backend
    ```
-## Configuration
-Environment Variables:
+2. Install deps & generate lockfile (if needed):
+   ```bash
+   deno cache --lock=deno.lock --lock-write app.ts
+   ```
 
-Create an .env file in the root directory with the following variables (adjust values as needed):
-   PORT=8000
-   DATABASE_URL=postgres://user:password@localhost:5432/mydb
-   OAUTH_CLIENT_ID=yourclientid
-   OAUTH_CLIENT_SECRET=yourclientsecret
 ## Configuration
-  Environment Variables:
-  ```bash
-  PORT=8000
-  DATABASE_URL=postgres://user:password@localhost:5432/mydb
-  OAUTH_CLIENT_ID=yourclientid
-  OAUTH_CLIENT_SECRET=yourclientsecret
+
+Create a `.env` file in the project root with:
+
+```bash
+PORT=8000
+DB_URL=postgres://user:password@localhost:5432/mydb
+DB_HOST=...
+DB_USER=...
+DB_PASSWORD=...
+DB_NAME=...
+AUTH0_DOMAIN=your-auth0-domain
+AUTH0_AUDIENCE=your-auth0-audience
+GOOGLE_API_KEY=...
+GOOGLE_PLACES_API_KEY=...
+TAVILY_API_KEY=...
 ```
+
 ## Running the Server
-  ```bash
-  deno run --allow-net --allow-read --allow-env src/app.ts
-  ```
-## Project Layout
-  ```bash
-  backend-server/
-  ├── src/
-  │   ├── controllers/      # API controllers for handling requests
-  │   ├── middlewares/      # Custom middleware (e.g., authentication)
-  │   ├── models/           # Database models and schema definitions
-  │   ├── routes/           # API routes configuration
-  │   ├── services/         # Business logic and external service integrations (e.g., AI models)
-  │   └── utils/            # Utility functions (e.g., database connection)
-  ├── config/               # Configuration files and scripts
-  ├── tests/                # Automated tests for the project
-  ├── .env                  # Environment variables (local development)
-  ├── deps.ts               # Centralized dependency exports
-  └── README.md             # This readme file
+
+Start in development mode:
+
+```bash
+deno run -A --watch index.ts
 ```
+
+Or compile to a standalone binary:
+
+```bash
+deno task build
+./server
+```
+
+## Project Layout
+
+```
+.
+├── .env
+├── deno.json          # Deno tasks & import map
+├── drizzle.config.ts  # Drizzle migrations config
+├── index.ts           # Deno.serve entrypoint
+├── app.ts             # Hono app & routes
+├── database/          # DB connection & LangGraph checkpointer
+├── config/            # config scripts
+├── drizzle/           # migrations & schema definitions
+├── langgraph/         # LangChain graph & tools
+├── middlewares/       # Auth & validation middleware
+├── routes/            # Hono route handlers
+│   ├── chat/
+│   └── models/
+├── services/          # Business logic & AI service
+├── types/             # Zod/OpenAPI types & enums
+├── utils/             # Logger & HTTP code enums
+├── tests/             # Deno unit tests
+└──
